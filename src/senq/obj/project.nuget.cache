@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "gjfkDI7YhDLRVWZrzi59A7aQNyrAVU4n1ZqktTC7t7F7PRx1+iEhgWMGf5iGBmmbg8Y9ZSsSz2dR/XF0pHoOZQ==",
+  "success": true,
+  "projectFilePath": "/home/mm/mff/csharp2/zapoctak/senq/src/senq/senq.csproj",
+  "expectedPackageFiles": [
+    "/home/mm/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.7/microsoft.aspnetcore.app.ref.7.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}
