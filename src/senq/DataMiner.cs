@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Senq {
 
@@ -24,7 +25,7 @@ namespace Senq {
             }
             catch (ArgumentException) {
                 Console.WriteLine($"Invalid pattern: {pattern}");
-                return "";
+                throw;
             }
         }
 

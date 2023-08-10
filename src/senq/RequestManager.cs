@@ -19,6 +19,7 @@ namespace Senq {
             }
             catch(HttpRequestException e) {
                 Console.WriteLine("\nError: {0} ", e.Message);
+                return "";
             }
         }
     }
