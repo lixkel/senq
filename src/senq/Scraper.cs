@@ -31,10 +31,10 @@ namespace Senq {
 
     public class Scraper {
         private RequestManager rm = new RequestManager();
-        private readonly ConcurrentBag<Task> allTasks = new ConcurrentBag<Task>();
+        private int scrapeTasks = 0;
 
         public static void Main(string[] args) {
-            SenqConf conf = new SenqConf{ webAddr = "example.com", target = "example", output = CSVOut, maxDepth = 0 };
+            SenqConf conf = new SenqConf{ webAddr = "https://www.example.com/", target = "example", output = CSVOut, maxDepth = 0 };
 
             Scraper scraper = new Scraper();
             scraper.Scrape(conf);
@@ -45,14 +45,14 @@ namespace Senq {
 
             InternalSenqConf internalConf = new InternalSenqConf(conf);
 
-            Task.Factory.StartNew(() => {
+            var outputTask = Task.Factory.StartNew(() => {
                 OutputHandler(queue, conf.output);
             }, TaskCreationOptions.LongRunning);
 
-            var task = Task.Run(() => ScrapePage(internalConf, queue));
-            allTasks.Add(task);
+            Task.Run(() => ScrapePage(internalConf, queue));
+            IncrementScrapeTasks();
 
-            Task.WhenAll(allTasks);
+            outputTask.Wait();
         }
 
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
@@ -62,7 +62,7 @@ namespace Senq {
 
             HandleLinks(conf, queue, webPage);
 
-            List<string> webAddress = DataMiner.FindLinks(webPage);
+            DecrementScrapeTasks();
         }
 
         private void HandleMatches(InternalSenqConf conf, BlockingCollection<(string, string)> queue, string webPage) {
@@ -83,14 +83,29 @@ namespace Senq {
             foreach (string link in links) {
                 InternalSenqConf newConf = conf with { webAddr = link };
 
-                var task = Task.Run(() => ScrapePage(newConf, queue));
-                allTasks.Add(task);
+                Task.Run(() => ScrapePage(newConf, queue));
+                IncrementScrapeTasks();
             }
         }
 
-        public static void OutputHandler(BlockingCollection<(string, string)> queue, Action<string, string> output) {
+        private void IncrementScrapeTasks() {
+            lock (rm) {
+                scrapeTasks++;
+            }
+        }
+
+        private void DecrementScrapeTasks() {
+            lock (rm) {
+                scrapeTasks--;
+            }
+        }
+
+        public void OutputHandler(BlockingCollection<(string, string)> queue, Action<string, string> output) {
             foreach (var (webAddress, content) in queue.GetConsumingEnumerable()) {
                 output(webAddress, content);
+                if (scrapeTasks == 0 && queue.Count == 0) {
+                    return;
+                }
             }
         }
 
