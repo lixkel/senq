@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 using CommandLine;
+using CommandLine.Text;
 
 #nullable enable
 
@@ -60,10 +62,43 @@ namespace Senq {
                 scraper.Scrape(conf);
             })
             .WithNotParsed((errs) =>  {
-                foreach (var error in errs) {
-                    Console.WriteLine($"Failed to parse option '{error.Tag}'");
-                }
+                HandleParseErrors(parserResult, errs);
             });
+        }
+
+        public static void HandleParseErrors<T>(ParserResult<T> result, IEnumerable<Error> errs) {
+
+            // Check if help or version was requested, this library treats help nad version flags as errors
+            if (errs.IsVersion() || errs.IsHelp())
+            {
+                var helpText = HelpText.AutoBuild(result);
+                Console.WriteLine(helpText);
+                return;
+            }
+
+            // Display custom messages for error types
+            foreach (var error in errs) {
+                switch (error) {
+                    case NamedError namedError when error is BadFormatTokenError:
+                        Console.WriteLine($"Token '{namedError.NameInfo.NameText}' is not in the correct format.");
+                        break;
+                    case NamedError namedError when error is MissingRequiredOptionError:
+                        Console.WriteLine($"Option '{namedError.NameInfo.NameText}' is required.");
+                        break;
+                    case NamedError namedError when error is MissingValueOptionError:
+                        Console.WriteLine($"Option '{namedError.NameInfo.NameText}' requires a value.");
+                        break;
+                    case NamedError namedError when error is UnknownOptionError:
+                        Console.WriteLine($"Unknown option '{namedError.NameInfo.NameText}'.");
+                        break;
+                    case NamedError namedError when error is BadVerbSelectedError:
+                        Console.WriteLine($"Unknown command '{namedError.NameInfo.NameText}'.");
+                        break;
+                    case NamedError namedError when error is BadFormatConversionError:
+                        Console.WriteLine($"Cannot convert option '{namedError.NameInfo.NameText}' to the required type.");
+                        break;
+                }
+            }
         }
     }
 }
