@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
@@ -11,6 +12,7 @@ namespace Senq {
     public class SenqConf {
         public string webAddr { get; init; }
         public string targetRegex { get; init; }
+        public List<string>? userAgents { get; init; } = null;
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
         public int maxDepth { get; init; }
@@ -18,15 +20,16 @@ namespace Senq {
 
     internal struct InternalSenqConf {
         public Regex regex { get; init; }
-        public int depth {get; init; } = 0;
-        public string webAddr { get; init; }
+        public Uri webAddr { get; init; }
+        public List<string>? userAgents { get; init; }
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; }
         public int maxDepth { get; init; }
+        public int depth {get; init; } = 0;
 
         public InternalSenqConf(SenqConf originalConf) {
             output = originalConf.output;
-            webAddr = originalConf.webAddr;
+            webAddr = CheckUri(originalConf.webAddr);
             maxDepth = originalConf.maxDepth;
             linkFinder = originalConf.linkFinder;
 
@@ -34,7 +37,7 @@ namespace Senq {
         }
 
         public InternalSenqConf(CLISenqConf originalConf) {
-            webAddr = originalConf.webAddr;
+            webAddr = CheckUri(originalConf.webAddr);
             maxDepth = originalConf.maxDepth;
             linkFinder = DataMiner.FindLinks;
 
@@ -44,16 +47,26 @@ namespace Senq {
                         output = Output.CSVOut;
                         break;
                     }
-                    Output.CSVWriter writer = new Output.CSVWriter(originalConf.outputFile);
-                    output = writer.Write;
+                    Output.CSVWriter CSVwriter = new Output.CSVWriter(originalConf.outputFile);
+                    output = CSVwriter.Write;
                     break;
 
                 case OutputType.db:
-                    output = Output.db;
+                    Output.DatabaseWriter DBwriter = new Output.DatabaseWriter(originalConf.dbString);
+                    output = DBwriter.Write;
                     break;
             }
 
             regex = new Regex(originalConf.targetRegex);
+        }
+
+        private static Uri CheckUri(string address) {
+            Uri? newUri = RequestManager.FormatUri(address);
+
+            if (newUri == null) {
+                throw new BadStartingAddressException();
+            }
+            return newUri;
         }
     }
 
@@ -63,12 +76,16 @@ namespace Senq {
         private int scrapeTasks = 0;
 
         public void Scrape(SenqConf conf) {
+            ScraperConf(conf.userAgents);
+
             InternalSenqConf internalConf = new InternalSenqConf(conf);
 
             Scrape(internalConf);
         }
 
         internal void Scrape(CLISenqConf conf) {
+            ScraperConf(conf.userAgents.ToList());
+
             InternalSenqConf internalConf = new InternalSenqConf(conf);
 
             Scrape(internalConf);
@@ -87,8 +104,17 @@ namespace Senq {
             outputTask.Wait();
         }
 
+        private void ScraperConf(List<string>? newUserAgents) {
+            if (newUserAgents != null && newUserAgents.Count != 0) {
+                rm.changeUserAgents(newUserAgents);
+            }
+         }
+
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
+            Console.WriteLine($"{conf.webAddr}");
+
             string webPage = rm.GET(conf.webAddr);
+            Console.WriteLine($"GOT");
 
             HandleMatches(conf, queue, webPage);
 
@@ -113,7 +139,7 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                InternalSenqConf newConf = conf with { webAddr = link };
+                InternalSenqConf newConf = conf with { webAddr = link, depth = conf.depth + 1 };
 
                 Task.Run(() => ScrapePage(newConf, queue));
                 IncrementScrapeTasks();
