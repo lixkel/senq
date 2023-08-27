@@ -1,5 +1,7 @@
 using System;
+using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -7,7 +9,7 @@ using System.Collections.Generic;
 namespace Senq {
 
     public class RequestManager {
-        static readonly HttpClient client = new HttpClient();
+        private readonly List<HttpClient> clients = new List<HttpClient>{ new HttpClient() };
         // I should try looking for alternatives
         private readonly ThreadLocal<Random> threadLocalRandom = new ThreadLocal<Random>(() => new Random(Interlocked.Increment(ref seed)));
         private static int seed = Environment.TickCount;
@@ -17,24 +19,18 @@ namespace Senq {
             "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/116.0"
         };
 
-        RequestManager(List<String> proxyAddresses, List<string> userAgents) {
-            List<HttpClient> httpClients = new List<HttpClient>();
-
-            foreach (string proxyAddress in proxyAddresses) {
-                HttpClientHandler handler = new HttpClientHandler {
-                    Proxy = new WebProxy(proxyAddress, false),
-                    UseProxy = true
-                };
-
-                httpClients.Add(new HttpClient(handler));
-            }
+        RequestManager(List<String> proxyAddresses, List<string> newUserAgents) {
+            clients = NewClients(proxyAddresses);
+            userAgents = newUserAgents;
         }
 
-        public string GET(string webAddr) {
-            try {
-                var request = new HttpRequestMessage(HttpMethod.Get, webAddr);
-                request.Headers.UserAgent.ParseAdd(GetRandomUserAgent());
+        public string GET(Uri webAddr) {
+            HttpClient client = GetRandomClient;
 
+            var request = new HttpRequestMessage(HttpMethod.Get, webAddr);
+            request.Headers.UserAgent.ParseAdd(GetRandomUserAgent());
+
+            try {
                 using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) {
                     response.EnsureSuccessStatusCode();
                     return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -61,6 +57,11 @@ namespace Senq {
         private string GetRandomUserAgent() {
             int index = threadLocalRandom.Value.Next(userAgents.Count);
             return userAgents[index];
+        }
+
+        private HttpClient GetRandomClient() {
+            int index = threadLocalRandom.Value.Next(clients.Count);
+            return clients[index];
         }
 
         public static Uri? FormatUri(string address, Uri currentServerUri) {
@@ -101,12 +102,70 @@ namespace Senq {
                 string newAddress = scheme + "://" + address;
 
                 if (Uri.IsWellFormedUriString(newAddress, UriKind.Absolute)) {
-                    return new Uri(address);;
+                    return new Uri(address);
                 }
             }
 
             return null;
         }
 
+        public static List<HttpClient> NewClients(List<String> proxyAddresses) {
+            var httpClientTasks = new List<Task<HttpClient?>>();
+
+            foreach (string proxyAddress in proxyAddresses) {
+                HttpClientHandler handler = new HttpClientHandler {
+                    Proxy = new WebProxy(proxyAddress, false),
+                    UseProxy = true
+                };
+
+                httpClient newClient = new HttpClient(handler);
+                httpClientTasks.Add(TestProxy(newClient));
+            }
+
+            List<HttpClient> httpClients = new List<HttpClient>();
+
+            while (httpClientTasks.Any()) {
+                var completedTask = await Task.WhenAny(httpClientTasks);
+                httpClientTasks.Remove(completedTask);
+
+                if (completedTask != null) {
+                    httpClients.Add(completedTask);
+                }
+            }
+
+            if (httpClients.Count == 0) {
+                httpClients.Add(new HttpClient());
+            }
+
+            return httpClients;
+        }
+
+        public static async Task<HttpClient?> TestProxy(HttpClient client) {
+            const string apiAddress = "https://api.ipify.org?format=json";
+
+            try {
+                var response = client.GetStringAsync(apiAddress).Result;
+                using (JsonDocument doc = JsonDocument.Parse(response)) {
+                    if (doc.RootElement.TryGetProperty("ip", out var ipElement) && ipElement.GetString() != null) {
+                        string returnedIp = ipElement.GetString();
+                        IPAddress[] proxyIpAddresses;
+
+                        proxyIpAddresses = await Dns.GetHostAddressesAsync(proxyAddress);
+
+                        // Check if any of the resolved IP addresses match the returned IP
+                        foreach (var proxyIp in proxyIpAddresses) {
+                            if (proxyIp.ToString() == returnedIp) {
+                                return client; // The returned IP matches one of the proxy's IP addresses
+                            }
+                        }
+                    }
+                    return null;
+                }
+            }
+            catch (Exception) {
+                // If any exception occurs it's almost certain that the proxy isn't working.
+                return null;
+            }
+        }
     }
 }
