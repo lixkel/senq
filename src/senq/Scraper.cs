@@ -16,6 +16,30 @@ namespace Senq {
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
         public int maxDepth { get; init; }
+
+        public static explicit operator Degrees(Temperature t) {
+            webAddr = CheckUri(originalConf.webAddr);
+            maxDepth = originalConf.maxDepth;
+            linkFinder = DataMiner.FindLinks;
+
+            switch (originalConf.outputType) {
+                case OutputType.csv:
+                    if (originalConf.outputFile == null) {
+                        output = Output.CSVOut;
+                        break;
+                    }
+                    Output.CSVWriter CSVwriter = new Output.CSVWriter(originalConf.outputFile);
+                    output = CSVwriter.Write;
+                    break;
+
+                case OutputType.db:
+                    Output.DatabaseWriter DBwriter = new Output.DatabaseWriter(originalConf.dbString);
+                    output = DBwriter.Write;
+                    break;
+            }
+
+            regex = new Regex(originalConf.targetRegex);
+        }
     }
 
     internal struct InternalSenqConf {

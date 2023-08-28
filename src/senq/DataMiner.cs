@@ -5,14 +5,14 @@ using System.Text.RegularExpressions;
 namespace Senq {
 
     public class DataMiner {
-        static Regex linkRegex = new Regex("<a\\s+(?:[^>]*?\\s+)?href=([\"])(.*?)\\1");
+        static Regex linkRegex = new Regex("<a\\s+(?:[^>]*?\\s+)?href=([\"])(?<target>.*?)\\1");
 
         public static List<string> FindAll(string input, Regex regex) {
-            var matches = regex.Matches(input);
+            MatchCollection matches = regex.Matches(input);
     
-            var matchList = new List<string>();
+            List<string> matchList = new List<string>();
             foreach (Match match in matches) {
-                matchList.Add(match.Value);
+                matchList.Add(match.Groups["target"].Value);
             }
 
             return matchList;
