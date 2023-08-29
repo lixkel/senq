@@ -30,11 +30,11 @@ namespace Senq {
         [Option('m', "mode", Default = ScrapingMode.d, HelpText = "Mode of scraping: Direct for HTTP requests or JavaScript for executing scripts with Google V8 engine.")]
         public ScrapingMode mode { get; set; }
 
-        [Option('p', "proxy", HelpText = "Proxy server address to use for scraping. This helps in hiding IP and avoiding website restrictions.")]
-        public string? proxy { get; set; } = null;
+        [Option('p', "proxy", Separator = ',', HelpText = "Proxy server address to use for scraping. This helps in hiding IP and avoiding website restrictions.")]
+        public IEnumerable<string>? proxyAddresses { get; set; } = null;
 
-        [Option('a', "userAgent", HelpText = "User agent string to use for requests. The tool supports user agent rotation if a list is provided.")]
-        public string? userAgent { get; set; } = null;
+        [Option('a', "userAgents", Separator = '&', HelpText = "User agent string to use for requests. The tool supports user agent rotation if a list is provided.")]
+        public IEnumerable<string>? userAgents { get; set; } = new List<string>();
 
         [Option('o', "outputType", Default = OutputType.csv, HelpText = "Choose the output type: CSV or Database.")]
         public OutputType outputType { get; set; }
@@ -75,7 +75,7 @@ namespace Senq {
 
             Scraper scraper = new Scraper();
                 
-            scraper.Scrape(conf);
+            scraper.Scrape(SenqConf.ToSenqConf(conf));
         }
 
         private static void HandleParseErrors<T>(ParserResult<T> result, IEnumerable<Error> errs) {
@@ -90,6 +90,7 @@ namespace Senq {
 
             // Display custom messages for error types
             foreach (var error in errs) {
+                //Console.WriteLine($"Error Type: {error.Tag}");
                 switch (error) {
                     case NamedError namedError when error is BadFormatTokenError:
                         Console.WriteLine($"Token '{namedError.NameInfo.NameText}' is not in the correct format.");
@@ -108,6 +109,9 @@ namespace Senq {
                         break;
                     case NamedError namedError when error is BadFormatConversionError:
                         Console.WriteLine($"Cannot convert option '{namedError.NameInfo.NameText}' to the required type.");
+                        break;
+                    case NamedError namedError when error is SetValueExceptionError:
+                        Console.WriteLine($"Error setting the value for option '{namedError.NameInfo.NameText}'.");
                         break;
                 }
             }

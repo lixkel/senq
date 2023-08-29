@@ -13,14 +13,20 @@ namespace Senq {
         public string webAddr { get; init; }
         public string targetRegex { get; init; }
         public List<string>? userAgents { get; init; } = null;
+        public List<string>? proxyAddresses { get; init; } = null;
+
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
         public int maxDepth { get; init; }
 
-        public static explicit operator Degrees(Temperature t) {
-            webAddr = CheckUri(originalConf.webAddr);
+        internal SenqConf(CLISenqConf originalConf) {
+            webAddr = originalConf.webAddr;
+            targetRegex = originalConf.targetRegex;
             maxDepth = originalConf.maxDepth;
+
             linkFinder = DataMiner.FindLinks;
+            userAgents = originalConf.userAgents.ToList();
+            proxyAddresses = originalConf.proxyAddresses.ToList();
 
             switch (originalConf.outputType) {
                 case OutputType.csv:
@@ -37,8 +43,10 @@ namespace Senq {
                     output = DBwriter.Write;
                     break;
             }
+        }
 
-            regex = new Regex(originalConf.targetRegex);
+        internal static SenqConf ToSenqConf(CLISenqConf originalConf) {
+            return new SenqConf(originalConf);
         }
     }
 
@@ -60,32 +68,11 @@ namespace Senq {
             regex = new Regex(originalConf.targetRegex);
         }
 
-        public InternalSenqConf(CLISenqConf originalConf) {
-            webAddr = CheckUri(originalConf.webAddr);
-            maxDepth = originalConf.maxDepth;
-            linkFinder = DataMiner.FindLinks;
-
-            switch (originalConf.outputType) {
-                case OutputType.csv:
-                    if (originalConf.outputFile == null) {
-                        output = Output.CSVOut;
-                        break;
-                    }
-                    Output.CSVWriter CSVwriter = new Output.CSVWriter(originalConf.outputFile);
-                    output = CSVwriter.Write;
-                    break;
-
-                case OutputType.db:
-                    Output.DatabaseWriter DBwriter = new Output.DatabaseWriter(originalConf.dbString);
-                    output = DBwriter.Write;
-                    break;
-            }
-
-            regex = new Regex(originalConf.targetRegex);
+        public InternalSenqConf(CLISenqConf originalConf) : this(SenqConf.ToSenqConf(originalConf)) {
         }
 
         private static Uri CheckUri(string address) {
-            Uri? newUri = RequestManager.FormatUri(address);
+            Uri? newUri = RequestManager.FormatUri(address, "http");
 
             if (newUri == null) {
                 throw new BadStartingAddressException();
@@ -100,7 +87,7 @@ namespace Senq {
         private int scrapeTasks = 0;
 
         public void Scrape(SenqConf conf) {
-            ScraperConf(conf.userAgents);
+            RmConf(conf);
 
             InternalSenqConf internalConf = new InternalSenqConf(conf);
 
@@ -108,11 +95,7 @@ namespace Senq {
         }
 
         internal void Scrape(CLISenqConf conf) {
-            ScraperConf(conf.userAgents.ToList());
-
-            InternalSenqConf internalConf = new InternalSenqConf(conf);
-
-            Scrape(internalConf);
+            Scrape(SenqConf.ToSenqConf(conf));
         }
 
         private void Scrape(InternalSenqConf conf) {
@@ -128,11 +111,14 @@ namespace Senq {
             outputTask.Wait();
         }
 
-        private void ScraperConf(List<string>? newUserAgents) {
-            if (newUserAgents != null && newUserAgents.Count != 0) {
-                rm.changeUserAgents(newUserAgents);
+        private void RmConf(SenqConf conf) {
+            if (conf.userAgents != null && conf.userAgents.Count != 0) {
+                rm.ChangeUserAgents(conf.userAgents);
             }
-         }
+            if (conf.proxyAddresses != null && conf.proxyAddresses.Count != 0) {
+                rm.ChangeProxy(conf.proxyAddresses);
+            }
+        }
 
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
             Console.WriteLine($"{conf.webAddr}");
@@ -151,7 +137,7 @@ namespace Senq {
             List<string> matches = DataMiner.FindAll(webPage, conf.regex);
 
             foreach (string match in matches ) {
-                queue.Add((conf.webAddr, match));
+                queue.Add((conf.webAddr.ToString(), match));
             }
         }
 
