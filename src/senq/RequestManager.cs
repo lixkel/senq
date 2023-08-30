@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Senq {
 
     public class RequestManager {
-        private readonly List<HttpClient> clients = new List<HttpClient>{ new HttpClient() };
+        private List<HttpClient> clients = new List<HttpClient>{ new HttpClient() };
         // I should try looking for alternatives
         private readonly ThreadLocal<Random> threadLocalRandom = new ThreadLocal<Random>(() => new Random(Interlocked.Increment(ref seed)));
         private static int seed = Environment.TickCount;
@@ -19,13 +19,16 @@ namespace Senq {
             "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/116.0"
         };
 
-        RequestManager(List<String> proxyAddresses, List<string> newUserAgents) {
+        public RequestManager() {
+        }
+
+        public RequestManager(List<String> proxyAddresses, List<string> newUserAgents) {
             clients = NewClients(proxyAddresses);
             userAgents = newUserAgents;
         }
 
         public string GET(Uri webAddr) {
-            HttpClient client = GetRandomClient;
+            HttpClient client = GetRandomClient();
 
             var request = new HttpRequestMessage(HttpMethod.Get, webAddr);
             request.Headers.UserAgent.ParseAdd(GetRandomUserAgent());
@@ -50,8 +53,12 @@ namespace Senq {
             }
         }
 
-        public void changeUserAgents(List<string> newUserAgents) {
+        public void ChangeUserAgents(List<string> newUserAgents) {
             userAgents = newUserAgents;
+        }
+
+        public void ChangeProxy(List<string> proxyAddresses) {
+            clients = NewClients(proxyAddresses);
         }
 
         private string GetRandomUserAgent() {
@@ -66,7 +73,7 @@ namespace Senq {
 
         public static Uri? FormatUri(string address, Uri currentServerUri) {
             // try formatting non relative address
-            Uri? newUri = FormatUri(address);
+            Uri? newUri = FormatUri(address, currentServerUri.Scheme); // scheme http or https
 
             if (newUri != null) {
                 return newUri;
@@ -89,7 +96,7 @@ namespace Senq {
             return null;
         }
 
-        public static Uri? FormatUri(string address) {
+        public static Uri? FormatUri(string address, string scheme = "http") {
             // Check if the address is already a valid absolute URI
             if (Uri.IsWellFormedUriString(address, UriKind.Absolute)) {
                 return new Uri(address);
@@ -98,7 +105,6 @@ namespace Senq {
             // If address seems like a domain (contains a dot but doesn't start with a slash), 
             // but lacks the scheme, prepend it with the scheme from currentServerUri
             if (!address.StartsWith("/") && address.Contains(".")) {
-                string scheme = currentServerUri.Scheme; // http or https
                 string newAddress = scheme + "://" + address;
 
                 if (Uri.IsWellFormedUriString(newAddress, UriKind.Absolute)) {
@@ -118,18 +124,19 @@ namespace Senq {
                     UseProxy = true
                 };
 
-                httpClient newClient = new HttpClient(handler);
+                HttpClient newClient = new HttpClient(handler);
                 httpClientTasks.Add(TestProxy(newClient));
             }
 
             List<HttpClient> httpClients = new List<HttpClient>();
 
             while (httpClientTasks.Any()) {
-                var completedTask = await Task.WhenAny(httpClientTasks);
+                var completedTask = Task.WhenAny(httpClientTasks).Result;
                 httpClientTasks.Remove(completedTask);
+                var newClient = completedTask.Result;
 
-                if (completedTask != null) {
-                    httpClients.Add(completedTask);
+                if (newClient != null) {
+                    httpClients.Add(newClient);
                 }
             }
 
@@ -150,7 +157,7 @@ namespace Senq {
                         string returnedIp = ipElement.GetString();
                         IPAddress[] proxyIpAddresses;
 
-                        proxyIpAddresses = await Dns.GetHostAddressesAsync(proxyAddress);
+                        proxyIpAddresses = await Dns.GetHostAddressesAsync(client.BaseAddress.ToString());
 
                         // Check if any of the resolved IP addresses match the returned IP
                         foreach (var proxyIp in proxyIpAddresses) {
