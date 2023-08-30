@@ -17,7 +17,7 @@ namespace Senq {
 
             public CSVWriter(string filePath = "output.csv") {
                 filePath = filePath;
-                writer = new StreamWriter(filePath, true); // true means appending to file
+                writer = new StreamWriter(filePath, true); // true represents appending to file
             }
 
             public void Write(string webAddress, string content) {
@@ -46,8 +46,7 @@ namespace Senq {
                 string checkTableQuery = $"IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = '{tableName}') " +
                                         $"CREATE TABLE {tableName} (WebAddress NVARCHAR(500), Content NVARCHAR(MAX))";
 
-                using (SqlCommand cmd = new SqlCommand(checkTableQuery, connection))
-                {
+                using (SqlCommand cmd = new SqlCommand(checkTableQuery, connection)) {
                     cmd.ExecuteNonQuery();
                 }
             }

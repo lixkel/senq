@@ -72,7 +72,7 @@ namespace Senq {
         }
 
         private static Uri CheckUri(string address) {
-            Uri? newUri = RequestManager.FormatUri(address, "http");
+            Uri? newUri = RequestManager.FormatUri(address);
 
             if (newUri == null) {
                 throw new BadStartingAddressException();
@@ -149,7 +149,8 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                InternalSenqConf newConf = conf with { webAddr = link, depth = conf.depth + 1 };
+                InternalSenqConf newConf = conf with { webAddr = RequestManager.FormatUri(link, conf.webAddr),
+                                                        depth = conf.depth + 1 };
 
                 Task.Run(() => ScrapePage(newConf, queue));
                 IncrementScrapeTasks();
