@@ -9,17 +9,26 @@ using CommandLine.Text;
 
 namespace Senq {
 
+    /// <summary>
+    /// Specifies the mode in which the scraper operates.
+    /// </summary>
     public enum ScrapingMode {
         d,      // Directly search data in downloaded web page.
         js      // Search data after executing JavaScript with Google V8 engine.
     }
 
+    /// <summary>
+    /// Specifies how the data should be processed and outputed.
+    /// </summary>
     public enum OutputType {
-        csv,        // CSV format of output data
-        db          // Output to database
+        csv,        // CSV format of output data, output to file or stdout
+        db          // Output to database, connection string must be provided
     }
 
-    [Verb("scrape", HelpText = "Scrape web content based on provided configuration.")]
+    /// <summary>
+    /// Configuration for the command line interface of Senq scraper.
+    /// </summary>
+    [Verb("scrape", HelpText = "Scrape web content based on provided configuration.")] // TODO: should local address be used for requests
     internal class CLISenqConf {
         [Option('w', "webAddr", Required = true, HelpText = "Address of the webpage to scrape.")]
         public string webAddr { get; set; }
@@ -52,6 +61,9 @@ namespace Senq {
         public int maxDepth { get; set; } = 1;
     }
 
+    /// <summary>
+    /// Command line interface for the Senq scraper application.
+    /// </summary>
     public static class CLI {
 
         public static void Main(string[] args) {
@@ -67,6 +79,10 @@ namespace Senq {
             });
         }
 
+        /// <summary>
+        /// Handles the scenario when the command line arguments were successfully parsed.
+        /// </summary>
+        /// <param name="conf">Parsed CLI configuration.</param>
         private static void HandleSuccessfulParse(CLISenqConf conf) {
             if (conf.outputType == OutputType.db && string.IsNullOrEmpty(conf.dbString)) {
                 Console.WriteLine("Error: If you specify the 'outputType' option as 'db' (database), you must also provide a database connection string using the 'dbString' option.");
@@ -75,9 +91,15 @@ namespace Senq {
 
             Scraper scraper = new Scraper();
                 
-            scraper.Scrape(SenqConf.ToSenqConf(conf));
+            scraper.Scrape(SenqConf.ToSenqConf(conf)); // TODO: add try to catch errors
         }
 
+        /// <summary>
+        /// Handles the scenario when there were errors parsing the command line arguments.
+        /// </summary>
+        /// <typeparam name="T">Type of the result being processed.</typeparam>
+        /// <param name="result">Result of the command line arguments parsing.</param>
+        /// <param name="errs">Collection of errors.</param>
         private static void HandleParseErrors<T>(ParserResult<T> result, IEnumerable<Error> errs) {
 
             // Check if help or version was requested, this library treats help nad version flags as errors

@@ -9,16 +9,51 @@ using System.Text.RegularExpressions;
 
 namespace Senq {
 
+    /// <summary>
+    /// Configuration class for the Senq scraper.
+    /// </summary>
     public class SenqConf {
+        /// <summary>
+        /// Web address from where to start scrape.
+        /// </summary>
         public string webAddr { get; init; }
+
+        /// <summary>
+        /// Regex pattern for target data (Scraper is expecting target group in for the data extraction).
+        /// </summary>
         public string targetRegex { get; init; }
+
+        /// <summary>
+        /// List of user agents to rotate through.
+        /// </summary>
         public List<string>? userAgents { get; init; } = null;
+
+        /// <summary>
+        /// List of proxy addresses to rotate through.
+        /// </summary>
         public List<string>? proxyAddresses { get; init; } = null;
 
+        /// <summary>
+        /// Method that handles output of data.
+        /// </summary>
         public Action<string, string> output { get; init; }
+
+        /// <summary>
+        /// Method that is responsible for finding links inside the webpage code.
+        /// </summary>
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
+
+        /// <summary>
+        /// Specifies the maximum depth the scrape should follow links. 
+        /// </summary>
         public int maxDepth { get; init; }
 
+        /// <summary>
+        /// Converts a CLI configuration to a Senq configuration. Using explicit and implicit operator
+        /// was not possible as CLISenqConf is internal class.
+        /// </summary>
+        /// <param name="originalConf">CLI configuration to convert from.</param>
+        /// <returns>Converted Senq configuration.</returns>
         internal SenqConf(CLISenqConf originalConf) {
             webAddr = originalConf.webAddr;
             targetRegex = originalConf.targetRegex;
@@ -50,6 +85,9 @@ namespace Senq {
         }
     }
 
+    /// <summary>
+    /// Internal configuration struct for the Senq scraper.
+    /// </summary>
     internal struct InternalSenqConf {
         public Regex regex { get; init; }
         public Uri webAddr { get; init; }
@@ -57,21 +95,38 @@ namespace Senq {
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; }
         public int maxDepth { get; init; }
+
+        /// <summary>
+        /// The current depth of scraping.
+        /// </summary>
         public int depth {get; init; } = 0;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InternalSenqConf"/> class using the provided <see cref="SenqConf"/>.
+        /// </summary>
+        /// <param name="originalConf">The CLI configuration to convert from.</param>
         public InternalSenqConf(SenqConf originalConf) {
             output = originalConf.output;
-            webAddr = CheckUri(originalConf.webAddr);
+            webAddr = CheckStartingAddress(originalConf.webAddr);
             maxDepth = originalConf.maxDepth;
             linkFinder = originalConf.linkFinder;
 
             regex = new Regex(originalConf.targetRegex);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InternalSenqConf"/> class using the provided <see cref="CLISenqConf"/>.
+        /// </summary>
+        /// <param name="originalConf">The CLI configuration to convert from.</param>
         public InternalSenqConf(CLISenqConf originalConf) : this(SenqConf.ToSenqConf(originalConf)) {
         }
 
-        private static Uri CheckUri(string address) {
+        /// <summary>
+        /// Checks and formats the given URI. Throws BadStartingAddressException on failure.
+        /// </summary>
+        /// <param name="address">Web address to be checked.</param>
+        /// <returns>URI of the provided web address.</returns>
+        private static Uri CheckStartingAddress(string address) {
             Uri? newUri = RequestManager.FormatUri(address);
 
             if (newUri == null) {
@@ -82,10 +137,24 @@ namespace Senq {
     }
 
 
+    /// <summary>
+    /// Main web scraper class thats supposed to be called.
+    /// </summary>
     public class Scraper {
+        /// <summary>
+        /// Handles all interactions with network for all threads.
+        /// </summary>
         private RequestManager rm = new RequestManager();
+
+        /// <summary>
+        /// Number of currently running scraping tasks.
+        /// </summary>
         private int scrapeTasks = 0;
 
+        /// <summary>
+        /// Initiate scraping based on the given Senq configuration.
+        /// </summary>
+        /// <param name="conf">The Senq configuration for scraping.</param>
         public void Scrape(SenqConf conf) {
             RmConf(conf);
 
@@ -94,10 +163,18 @@ namespace Senq {
             Scrape(internalConf);
         }
 
+        /// <summary>
+        /// Initiate scraping based on the given Senq configuration.
+        /// </summary>
+        /// <param name="conf">CLI configuration for scraping.</param>
         internal void Scrape(CLISenqConf conf) {
             Scrape(SenqConf.ToSenqConf(conf));
         }
 
+        /// <summary>
+        /// Initiates data structures for scraping and starts thread to scrape the starting page.
+        /// </summary>
+        /// <param name="conf">Senq configuration for scraping.</param>
         private void Scrape(InternalSenqConf conf) {
             BlockingCollection<(string, string)> queue = new BlockingCollection<(string, string)>();
 
@@ -111,6 +188,10 @@ namespace Senq {
             outputTask.Wait();
         }
 
+        /// <summary>
+        /// Configures the Request Manager based on the given configuration.
+        /// </summary>
+        /// <param name="conf">The configuration to apply to the Request Manager.</param>
         private void RmConf(SenqConf conf) {
             if (conf.userAgents != null && conf.userAgents.Count != 0) {
                 rm.ChangeUserAgents(conf.userAgents);
@@ -120,6 +201,11 @@ namespace Senq {
             }
         }
 
+        /// <summary>
+        /// Handles scraping of one page on website. Main scraping function.
+        /// </summary>
+        /// <param name="conf">The configuration to use while scraping.</param>
+        /// <param name="conf">The configuration to use while scraping.</param>
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
             Console.WriteLine($"{conf.webAddr}");
 
@@ -133,6 +219,12 @@ namespace Senq {
             DecrementScrapeTasks();
         }
 
+        /// <summary>
+        /// Processes matches from the webpage and adds them to the queue for output.
+        /// </summary>
+        /// <param name="conf">Internal scraping configuration.</param>
+        /// <param name="queue">Blocking collection to add matches to.</param>
+        /// <param name="webPage">Webpage content to scrape.</param>
         private void HandleMatches(InternalSenqConf conf, BlockingCollection<(string, string)> queue, string webPage) {
             List<string> matches = DataMiner.FindAll(webPage, conf.regex);
 
@@ -141,6 +233,12 @@ namespace Senq {
             }
         }
 
+        /// <summary>
+        /// Finds and processes links from the webpage and starts new taks for crawling and further scraping.
+        /// </summary>
+        /// <param name="conf">Internal scraping configuration.</param>
+        /// <param name="queue">Blocking collection for output.</param>
+        /// <param name="webPage">Webpage content to process.</param>
         private void HandleLinks(InternalSenqConf conf, BlockingCollection<(string, string)> queue, string webPage) {
             if (conf.depth >= conf.maxDepth) {
                 return;
@@ -149,7 +247,7 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                InternalSenqConf newConf = conf with { webAddr = RequestManager.FormatUri(link, conf.webAddr),
+                InternalSenqConf newConf = conf with { webAddr = RequestManager.FormatUri(link, conf.webAddr), // TODO: check needed
                                                         depth = conf.depth + 1 };
 
                 Task.Run(() => ScrapePage(newConf, queue));
@@ -157,22 +255,33 @@ namespace Senq {
             }
         }
 
+        /// <summary>
+        /// Safely increases the number of currently running scraping tasks.
+        /// </summary>
         private void IncrementScrapeTasks() {
             lock (rm) {
                 scrapeTasks++;
             }
         }
 
+        /// <summary>
+        /// Safely decrements the number of currently running scraping tasks.
+        /// </summary>
         private void DecrementScrapeTasks() {
             lock (rm) {
                 scrapeTasks--;
             }
         }
 
+        /// <summary>
+        /// Handles the output of scraped data from the queue and calls on it output method.
+        /// </summary>
+        /// <param name="queue">Queue containing data the to output.</param>
+        /// <param name="output">Method to handle the output.</param>
         public void OutputHandler(BlockingCollection<(string, string)> queue, Action<string, string> output) {
             foreach (var (webAddress, content) in queue.GetConsumingEnumerable()) {
                 output(webAddress, content);
-                if (scrapeTasks == 0 && queue.Count == 0) {
+                if (scrapeTasks == 0 && queue.Count == 0) { // if the scraping ended
                     return;
                 }
             }
