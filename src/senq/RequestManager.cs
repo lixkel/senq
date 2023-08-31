@@ -12,7 +12,7 @@ namespace Senq {
     /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
     /// </summary>
     public class RequestManager {
-        private List<HttpClient> clients = new List<HttpClient>{ new HttpClient() };
+        private List<HttpClient> clients = new List<HttpClient>();
     
         /// <summary>
         /// Thread-local random to ensure thread safety when generating random numbers
@@ -26,7 +26,14 @@ namespace Senq {
             "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/116.0"
         };
 
+        /// <summary>
+        /// Address that will be used for testing internet connection by <see cref="CheckConnection"/>
+        /// Note: Feel free to replace it with any other reliable URL if needed.
+        /// </summary>
+        private const string TestAddress = "https://www.google.com/";
+
         public RequestManager() {
+            ChangeProxyClients(null, true);
         }
 
         /// <summary>
@@ -57,11 +64,11 @@ namespace Senq {
                 }
             }
             catch (HttpRequestException e) { // This exception is thrown by EnsureSuccessStatusCode
-                Console.WriteLine("\nError: {0}", e.Message);
+                Console.Error.WriteLine("\nError: {0}", e.Message);
                 return "";
             }
             catch (TaskCanceledException e) { // This is thrown when the request times out
-                Console.WriteLine("\nRequest timed out: {0}", e.Message);
+                Console.Error.WriteLine("\nRequest timed out: {0}", e.Message);
                 return "";
             }
             catch (Exception e) {
@@ -75,15 +82,53 @@ namespace Senq {
         /// </summary>
         /// <param name="newUserAgents">List of user agent strings.</param>
         public void ChangeUserAgents(List<string> newUserAgents) {
-            userAgents = newUserAgents;
+            userAgents = newUserAgents; // TODO: User Agent verification
         }
 
         /// <summary>
         /// Replaces the current list of HttpClient instances with new ones based on provided proxy addresses.
         /// </summary>
         /// <param name="proxyAddresses">List of proxy addresses.</param>
-        public void ChangeProxy(List<string> proxyAddresses) {
-            clients = NewClients(proxyAddresses);
+        /// <exception cref="NoWorkingClientsException">Thrown when all provided proxies are non functioning and Host address can't be used.</exception>
+        /// <exception cref="NoConnectionException">Thrown when connection from host to the internet couldn't be established.</exception>
+        public void ChangeProxyClients(List<string>? proxyAddresses, bool useHostAddress) {
+            HttpClient httpClient = new HttpClient();
+
+            if (!CheckConnection(httpClient).Result) {
+                throw new NoConnectionException();
+            }
+
+            List<HttpClient> newClients = new List<HttpClient>();
+
+            if (proxyAddresses != null) {
+                newClients = NewClients(proxyAddresses);
+            }
+
+            if (useHostAddress) {
+                newClients.Add(httpClient);
+            }
+
+            if (newClients.Count == 0) {
+                throw new NoWorkingClientsException();
+            }
+
+            clients = newClients;
+        }
+
+        /// <summary>
+        /// Checks if HttpClient provides an active internet connection.
+        /// </summary>
+        /// <param name="client">An instance of HttpClient used to make a web request.</param>
+        /// <returns>True if there's internet connectivity, otherwise False.</returns>
+        public async Task<bool> CheckConnection(HttpClient client) {
+            try {
+            var response = await client.GetAsync(TestAddress);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException) {
+            // This catch block will handle cases where the request fails
+            return false;
+        }
         }
 
         /// <summary>
@@ -188,10 +233,6 @@ namespace Senq {
                 if (newClient != null) {
                     httpClients.Add(newClient);
                 }
-            }
-
-            if (httpClients.Count == 0) {
-                httpClients.Add(new HttpClient());
             }
 
             return httpClients;

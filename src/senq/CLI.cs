@@ -42,6 +42,9 @@ namespace Senq {
         [Option('p', "proxy", Separator = ',', HelpText = "Proxy server address to use for scraping. This helps in hiding IP and avoiding website restrictions.")]
         public IEnumerable<string>? proxyAddresses { get; set; } = null;
 
+        [Option('h', "useHostAddress", HelpText = "Should the host address of this computer also be used for scraping?")]
+        public bool useHostAddress { get; set; } = true;
+
         [Option('a', "userAgents", Separator = '&', HelpText = "User agent string to use for requests. The tool supports user agent rotation if a list is provided.")]
         public IEnumerable<string>? userAgents { get; set; } = new List<string>();
 
@@ -85,13 +88,24 @@ namespace Senq {
         /// <param name="conf">Parsed CLI configuration.</param>
         private static void HandleSuccessfulParse(CLISenqConf conf) {
             if (conf.outputType == OutputType.db && string.IsNullOrEmpty(conf.dbString)) {
-                Console.WriteLine("Error: If you specify the 'outputType' option as 'db' (database), you must also provide a database connection string using the 'dbString' option.");
+                Console.Error.WriteLine("Error: If you specify the 'outputType' option as 'db' (database), you must also provide a database connection string using the 'dbString' option.");
                 return;
             }
 
             Scraper scraper = new Scraper();
                 
-            scraper.Scrape(SenqConf.ToSenqConf(conf)); // TODO: add try to catch errors
+            try {
+                scraper.Scrape(SenqConf.ToSenqConf(conf));
+            }
+            catch (BadStartingAddressException e) {
+                Console.Error.WriteLine($"Error BadStartingAddressException: {e.Message}");
+            }
+            catch (NoWorkingClientsException e) {
+                Console.Error.WriteLine($"Error NoWorkingClientsException: {e.Message}");
+            }
+            catch (NoConnectionException e) {
+                Console.Error.WriteLine($"Error NoConnectionException: {e.Message}");
+            }
         }
 
         /// <summary>

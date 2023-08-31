@@ -34,6 +34,11 @@ namespace Senq {
         public List<string>? proxyAddresses { get; init; } = null;
 
         /// <summary>
+        /// Should the host address of this computer also be used for scraping
+        /// </summary>
+        public bool useHostAddress { get; init; } = true;
+
+        /// <summary>
         /// Method that handles output of data.
         /// </summary>
         public Action<string, string> output { get; init; }
@@ -53,11 +58,11 @@ namespace Senq {
         /// was not possible as CLISenqConf is internal class.
         /// </summary>
         /// <param name="originalConf">CLI configuration to convert from.</param>
-        /// <returns>Converted Senq configuration.</returns>
         internal SenqConf(CLISenqConf originalConf) {
             webAddr = originalConf.webAddr;
             targetRegex = originalConf.targetRegex;
             maxDepth = originalConf.maxDepth;
+            useHostAddress = originalConf.useHostAddress;
 
             linkFinder = DataMiner.FindLinks;
             userAgents = originalConf.userAgents.ToList();
@@ -122,10 +127,11 @@ namespace Senq {
         }
 
         /// <summary>
-        /// Checks and formats the given URI. Throws BadStartingAddressException on failure.
+        /// Checks and formats the given URI if possible.
         /// </summary>
         /// <param name="address">Web address to be checked.</param>
         /// <returns>URI of the provided web address.</returns>
+        /// <exception cref="BadStartingAddressException">Thrown when starting address for scraping is in bad format.</exception>
         private static Uri CheckStartingAddress(string address) {
             Uri? newUri = RequestManager.FormatUri(address);
 
@@ -185,6 +191,8 @@ namespace Senq {
             Task.Run(() => ScrapePage(conf, queue));
             IncrementScrapeTasks();
 
+            // output thread is the last thread that will exit as it wits for all scraping threads to end
+            // and for the blocking queue to be empty
             outputTask.Wait();
         }
 
@@ -197,7 +205,7 @@ namespace Senq {
                 rm.ChangeUserAgents(conf.userAgents);
             }
             if (conf.proxyAddresses != null && conf.proxyAddresses.Count != 0) {
-                rm.ChangeProxy(conf.proxyAddresses);
+                rm.ChangeProxyClients(conf.proxyAddresses, conf.useHostAddress);
             }
         }
 
@@ -205,7 +213,7 @@ namespace Senq {
         /// Handles scraping of one page on website. Main scraping function.
         /// </summary>
         /// <param name="conf">The configuration to use while scraping.</param>
-        /// <param name="conf">The configuration to use while scraping.</param>
+        /// <param name="queue">Blocking collection to add matches to.</param>
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
             Console.WriteLine($"{conf.webAddr}");
 
@@ -247,7 +255,12 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                InternalSenqConf newConf = conf with { webAddr = RequestManager.FormatUri(link, conf.webAddr), // TODO: check needed
+                Uri? newWebAddr = RequestManager.FormatUri(link, conf.webAddr);
+                if (newWebAddr == null) {
+                    continue;
+                }
+
+                InternalSenqConf newConf = conf with { webAddr = newWebAddr,
                                                         depth = conf.depth + 1 };
 
                 Task.Run(() => ScrapePage(newConf, queue));
@@ -276,12 +289,12 @@ namespace Senq {
         /// <summary>
         /// Handles the output of scraped data from the queue and calls on it output method.
         /// </summary>
-        /// <param name="queue">Queue containing data the to output.</param>
+        /// <param name="queue">Queue containing data that should be given to the output method.</param>
         /// <param name="output">Method to handle the output.</param>
         public void OutputHandler(BlockingCollection<(string, string)> queue, Action<string, string> output) {
             foreach (var (webAddress, content) in queue.GetConsumingEnumerable()) {
                 output(webAddress, content);
-                if (scrapeTasks == 0 && queue.Count == 0) { // if the scraping ended
+                if (scrapeTasks == 0 && queue.Count == 0) { // if the scraping ended return
                     return;
                 }
             }
