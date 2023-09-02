@@ -13,7 +13,7 @@ namespace Benchmarks {
             targetRegex = @"(?<target>spyware)",
             useHostAddress = true,
             output = Output.CSVString.GetWriter(str => { result = str; }),
-            maxDepth = 2,
+            maxDepth = 1,
             stayOnDomain = true,
         };
 

@@ -19,7 +19,7 @@ jobs:
 
     - name: Download website
       run: |
-        wget --recursive --level=2 --no-clobber --page-requisites --html-extension --convert-links --restrict-file-names=windows --no-parent -P site/ https://spyware.neocities.org
+        wget --recursive --level=1 --no-clobber --page-requisites --html-extension --convert-links --restrict-file-names=windows --no-parent -P site/ https://spyware.neocities.org
 
     - name: Start NGINX Webserver
       run: |
