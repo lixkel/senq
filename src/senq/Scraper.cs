@@ -100,7 +100,7 @@ namespace Senq {
     /// <summary>
     /// Internal configuration struct for the Senq scraper.
     /// </summary>
-    internal struct InternalSenqConf {
+    internal class InternalSenqConf {
         public Regex regex { get; init; }
         public Uri webAddr { get; init; }
         public List<string>? userAgents { get; init; }
@@ -112,7 +112,6 @@ namespace Senq {
         /// <summary>
         /// The current depth of scraping.
         /// </summary>
-        public int depth {get; init; } = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InternalSenqConf"/> class using the provided <see cref="SenqConf"/>.
@@ -197,7 +196,7 @@ namespace Senq {
                 OutputHandler(queue, conf.output);
             }, TaskCreationOptions.LongRunning);
 
-            Task.Run(() => ScrapePage(conf, queue));
+            Task.Run(() => ScrapePage(conf, conf.webAddr, 0, queue));
             IncrementScrapeTasks();
 
             // output thread is the last thread that will exit as it wits for all scraping threads to end
@@ -223,14 +222,16 @@ namespace Senq {
         /// </summary>
         /// <param name="conf">The configuration to use while scraping.</param>
         /// <param name="queue">Blocking collection to add matches to.</param>
-        private async Task ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
+        private async Task ScrapePage(InternalSenqConf conf, Uri webAddr, int depth,
+                                      BlockingCollection<(string, string)> queue) {
+
             //Console.WriteLine($" GET: {conf.webAddr}");
 
             string webPage = await rm.GET(conf.webAddr);
 
-            HandleMatches(conf, queue, webPage);
+            HandleMatches(conf, webAddr, queue, webPage);
 
-            HandleLinks(conf, queue, webPage);
+            HandleLinks(conf, webAddr, depth, queue, webPage);
 
             DecrementScrapeTasks();
             //Console.WriteLine($"tasks: {scrapeTasks}");
@@ -246,11 +247,14 @@ namespace Senq {
         /// <param name="conf">Internal scraping configuration.</param>
         /// <param name="queue">Blocking collection to add matches to.</param>
         /// <param name="webPage">Webpage content to scrape.</param>
-        private void HandleMatches(InternalSenqConf conf, BlockingCollection<(string, string)> queue, string webPage) {
+        private void HandleMatches(InternalSenqConf conf, Uri webAddr,
+                                   BlockingCollection<(string, string)> queue,
+                                   string webPage) {
+
             List<string> matches = DataMiner.FindAll(webPage, conf.regex);
 
             foreach (string match in matches ) {
-                queue.Add((conf.webAddr.ToString(), match));
+                queue.Add((webAddr.ToString(), match));
             }
         }
 
@@ -260,15 +264,18 @@ namespace Senq {
         /// <param name="conf">Internal scraping configuration.</param>
         /// <param name="queue">Blocking collection for output.</param>
         /// <param name="webPage">Webpage content to process.</param>
-        private void HandleLinks(InternalSenqConf conf, BlockingCollection<(string, string)> queue, string webPage) {
-            if (conf.depth >= conf.maxDepth) {
+        private void HandleLinks(InternalSenqConf conf, Uri webAddr, int depth,
+                                 BlockingCollection<(string, string)> queue,
+                                 string webPage) {
+
+            if (depth >= conf.maxDepth) {
                 return;
             }
 
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                Uri? newWebAddr = RequestManager.FormatUri(link, conf.webAddr); // TODO: bitmap of visited pages
+                Uri? newWebAddr = RequestManager.FormatUri(link, webAddr); // TODO: bitmap of visited pages
                 if (newWebAddr == null) {
                     continue;
                 }
@@ -276,10 +283,7 @@ namespace Senq {
                     continue;
                 }
 
-                InternalSenqConf newConf = conf with { webAddr = newWebAddr,
-                                                        depth = conf.depth + 1 };
-
-                Task.Run(() => ScrapePage(newConf, queue));
+                Task.Run(() => ScrapePage(conf, newWebAddr, depth+1, queue));
                 IncrementScrapeTasks();
             }
         }
