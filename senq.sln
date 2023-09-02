@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0014C61B-76D8-4865-8A50-F5FD05DB6192}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "senq", "src\senq\senq.csproj", "{68CFCFA7-7EB1-4821-B801-1E092CB178E2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{357F1023-14F6-48CA-A487-1EB57EA3F49E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "senq.Benchmarks", "benchmarks\senq.Benchmarks\senq.Benchmarks.csproj", "{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68CFCFA7-7EB1-4821-B801-1E092CB178E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68CFCFA7-7EB1-4821-B801-1E092CB178E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68CFCFA7-7EB1-4821-B801-1E092CB178E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68CFCFA7-7EB1-4821-B801-1E092CB178E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{68CFCFA7-7EB1-4821-B801-1E092CB178E2} = {0014C61B-76D8-4865-8A50-F5FD05DB6192}
+		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A} = {357F1023-14F6-48CA-A487-1EB57EA3F49E}
+	EndGlobalSection
+EndGlobal

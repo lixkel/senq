@@ -1,0 +1,31 @@
+name: Benchmark scraper with nginx
+
+on: [push]
+
+jobs:
+  nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Install wget
+      run: sudo apt-get update && sudo apt-get install -y wget
+
+    - name: Download website
+      run: |
+        wget --recursive --level=2 --no-clobber --page-requisites --html-extension --convert-links --restrict-file-names=windows --no-parent -P site/ https://spyware.neocities.org
+
+    - name: Start NGINX Webserver
+      run: |
+        docker run -d -p 80:80 -v $PWD/site/spyware.neocities.org:/usr/share/nginx/html nginx
+
+    - name: Navigate to benchmarks and run
+      run: |
+        cd benchmarks/senq.Benchmarks/
+        dotnet run -c Release
