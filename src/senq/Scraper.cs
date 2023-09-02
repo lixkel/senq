@@ -51,7 +51,7 @@ namespace Senq {
         /// <summary>
         /// Specifies the maximum depth the scrape should follow links. 
         /// </summary>
-        public int maxDepth { get; init; }
+        public int maxDepth { get; init; } = 0;
 
         /// <summary>
         /// Converts a CLI configuration to a Senq configuration. Using explicit and implicit operator
@@ -74,13 +74,11 @@ namespace Senq {
                         output = Output.CSVOut;
                         break;
                     }
-                    Output.CSVWriter CSVwriter = new Output.CSVWriter(originalConf.outputFile);
-                    output = CSVwriter.Write;
+                    output = Output.CSVFileWriter.GetWriter(originalConf.outputFile);
                     break;
 
                 case OutputType.db:
-                    Output.DatabaseWriter DBwriter = new Output.DatabaseWriter(originalConf.dbString);
-                    output = DBwriter.Write;
+                    output = Output.DatabaseWriter.GetWriter(originalConf.dbString);
                     break;
             }
         }
@@ -197,6 +195,8 @@ namespace Senq {
             // output thread is the last thread that will exit as it wits for all scraping threads to end
             // and for the blocking queue to be empty
             outputTask.Wait();
+
+            Output.DisposeIfIsDisposable(conf.output);
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace Senq {
         /// <param name="conf">The configuration to use while scraping.</param>
         /// <param name="queue">Blocking collection to add matches to.</param>
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
-            Console.WriteLine($" GET: {conf.webAddr}");
+            //Console.WriteLine($" GET: {conf.webAddr}");
 
             string webPage = rm.GET(conf.webAddr);
 
@@ -225,7 +225,7 @@ namespace Senq {
             HandleLinks(conf, queue, webPage);
 
             DecrementScrapeTasks();
-            Console.WriteLine($"tasks: {scrapeTasks}");
+            //Console.WriteLine($"tasks: {scrapeTasks}");
 
             if (scrapeTasks == 0) {
                 queue.CompleteAdding();

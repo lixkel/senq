@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Data.SqlClient;
 using System.Collections.Generic;
 
@@ -11,6 +12,20 @@ namespace Senq {
     public static class Output {
 
         /// <summary>
+        /// If the delegate refers to an instance method, dispose of the instance.
+        /// </summary>
+        /// <param name="action">Delegate to be checked.</param>
+        public static void DisposeIfIsDisposable(Action<string, string> action) {
+            // Check if delegate is instance method (has target)
+            if (action.Target != null) {
+                // Check if the target is IDisposable
+                if (action.Target is IDisposable disposable) {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
         /// Outputs the scraped content in CSV format to the console.
         /// </summary>
         /// <param name="webAddress">Web address of the page where the wanted content was found.</param>
@@ -20,19 +35,63 @@ namespace Senq {
         }
 
         /// <summary>
+        /// Represents a writer that takes reference to string and writes to it.
+        /// </summary>
+        public class CSVString : IDisposable {
+            private Action<string> updateString;
+
+            private StringBuilder builder;
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="CSVString"/> class.
+            /// </summary>
+            /// <param name="outString">Reference to string where the output should be written.</param>
+            public CSVString(Action<string> outString) {
+                builder = new StringBuilder();
+                updateString = outString;
+            }
+
+            public static Action<string, string> GetWriter(Action<string> outString) {
+                var newClass = new CSVString(outString);
+                return newClass.Write;
+            }
+
+            /// <summary>
+            /// Appends the scraped content into string. This is the method you want to pass as output method to scraper.
+            /// </summary>
+            /// <param name="webAddress">Web address of the scraped content.</param>
+            /// <param name="content">Actual scraped content.</param>
+            public void Write(string webAddress, string content) {
+                 builder.AppendLine($"{webAddress},{content}");
+            }
+
+            /// <summary>
+            /// Output to the string reference from constructor.
+            /// </summary>
+            public void Dispose() {
+                updateString(builder.ToString());
+            }
+        }
+
+        /// <summary>
         /// Represents a writer that outputs the scraped content to a CSV file.
         /// </summary>
-        public class CSVWriter : IDisposable {
+        public class CSVFileWriter : IDisposable {
             private StreamWriter writer;
             private string filePath;
 
             /// <summary>
-            /// Initializes a new instance of <see cref="CSVWriter"/> class.
+            /// Initializes a new instance of <see cref="CSVFileWriter"/> class.
             /// </summary>
             /// <param name="filePath">Path to the output CSV file.</param>
-            public CSVWriter(string filePath = "output.csv") {
+            public CSVFileWriter(string filePath = "output.csv") {
                 filePath = filePath;
                 writer = new StreamWriter(filePath, true); // true represents appending to file
+            }
+
+            public static Action<string, string> GetWriter(string filePath = "output.csv") {
+                var newClass = new CSVFileWriter(filePath);
+                return newClass.Write;
             }
 
             /// <summary>
@@ -80,6 +139,11 @@ namespace Senq {
                 using (SqlCommand cmd = new SqlCommand(checkTableQuery, connection)) {
                     cmd.ExecuteNonQuery();
                 }
+            }
+
+            public static Action<string, string> GetWriter(string conString, string newTableName = "NONE") {
+                var newClass = new DatabaseWriter(conString, newTableName);
+                return newClass.Write;
             }
 
             /// <summary>
