@@ -51,10 +51,10 @@ namespace Senq {
         /// </summary>
         /// <param name="webAddr">The URI to request.</param>
         /// <returns>The response content as a string.</returns>
-        public string GET(Uri webAddr) {
-            HttpClient client = GetRandomClient();
+        public string GET(Uri webAddr) {             // TODO: http://localhost:8000/
+            HttpClient client = GetRandomClient();   // Error: Connection refused (localhost:8000)
 
-            var request = new HttpRequestMessage(HttpMethod.Get, webAddr);
+            var request = new HttpRequestMessage(HttpMethod.Get, webAddr); // GOT and still running
             request.Headers.UserAgent.ParseAdd(GetRandomUserAgent());
 
             try {
@@ -64,15 +64,15 @@ namespace Senq {
                 }
             }
             catch (HttpRequestException e) { // This exception is thrown by EnsureSuccessStatusCode
-                Console.Error.WriteLine("\nError: {0}", e.Message);
+                Console.Error.WriteLine($"\nError {webAddr}: {e.Message}");
                 return "";
             }
             catch (TaskCanceledException e) { // This is thrown when the request times out
-                Console.Error.WriteLine("\nRequest timed out: {0}", e.Message);
+                Console.Error.WriteLine($"\nRequest timed out {webAddr}: {e.Message}");
                 return "";
             }
             catch (Exception e) {
-                //Console.WriteLine(e);
+                Console.WriteLine(e);
                 return"";
             }
         }
@@ -156,11 +156,9 @@ namespace Senq {
         /// <param name="currentServerUri">Current server URI.</param>
         /// <returns>Valid Uri object or null.</returns>
         public static Uri? FormatUri(string address, Uri currentServerUri) {
-            // try formatting non relative address
-            Uri? newUri = FormatUri(address, currentServerUri.Scheme); // scheme http or https
-
-            if (newUri != null) {
-                return newUri;
+            // Check if the address is already a valid absolute URI
+            if (Uri.IsWellFormedUriString(address, UriKind.Absolute)) {
+                return new Uri(address);
             }
 
             // Check if the address is a valid relative URI
@@ -173,7 +171,35 @@ namespace Senq {
                 string newAddress = "/" + address;
 
                 if (Uri.IsWellFormedUriString(newAddress, UriKind.Relative)) {
-                    return new Uri(currentServerUri, address);
+                    return new Uri(currentServerUri, newAddress);
+                }
+            }
+            
+
+            // try formatting non relative address
+            Uri? newUri = FormatUri(address, currentServerUri.Scheme); // scheme http or https
+
+            if (newUri != null) {
+                return newUri;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Converts a string into a valid URI object if possible, with the help of provided protocol scheme.
+        /// </summary>
+        /// <param name="address">The address string.</param>
+        /// <param name="scheme">The scheme (default is "http").</param>
+        /// <returns>A valid Uri object or null.</returns>
+        public static Uri? FormatUri(string address, string scheme) {
+            // If address seems like a domain (contains a dot but doesn't start with a slash), 
+            // but lacks the scheme, prepend it with the scheme from currentServerUri
+            if (!address.StartsWith("/")) {
+                string newAddress = scheme + "://" + address;
+
+                if (Uri.IsWellFormedUriString(newAddress, UriKind.Absolute)) {
+                    return new Uri(newAddress);
                 }
             }
 
@@ -181,28 +207,18 @@ namespace Senq {
         }
 
         /// <summary>
-        /// Converts a string into a valid URI object if possible, with the help of protocol scheme.
+        /// Converts a string into a valid URI object if possible, assuming default protocol scheme is http.
         /// </summary>
         /// <param name="address">The address string.</param>
-        /// <param name="scheme">The scheme (default is "http").</param>
         /// <returns>A valid Uri object or null.</returns>
-        public static Uri? FormatUri(string address, string scheme = "http") {
+        public static Uri? FormatUri(string address) {
             // Check if the address is already a valid absolute URI
             if (Uri.IsWellFormedUriString(address, UriKind.Absolute)) {
                 return new Uri(address);
             }
 
-            // If address seems like a domain (contains a dot but doesn't start with a slash), 
-            // but lacks the scheme, prepend it with the scheme from currentServerUri
-            if (!address.StartsWith("/") && address.Contains(".")) {
-                string newAddress = scheme + "://" + address;
-
-                if (Uri.IsWellFormedUriString(newAddress, UriKind.Absolute)) {
-                    return new Uri(address);
-                }
-            }
-
-            return null;
+            string defaultScheme = "http";
+            return FormatUri(address, defaultScheme);
         }
 
         /// <summary>
@@ -225,6 +241,7 @@ namespace Senq {
 
             List<HttpClient> httpClients = new List<HttpClient>();
 
+            // Test each proxy and await their results
             while (httpClientTasks.Any()) {
                 var completedTask = Task.WhenAny(httpClientTasks).Result;
                 httpClientTasks.Remove(completedTask);
