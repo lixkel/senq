@@ -88,6 +88,9 @@ namespace Senq {
         internal static SenqConf ToSenqConf(CLISenqConf originalConf) {
             return new SenqConf(originalConf);
         }
+
+        public SenqConf() {
+        }
     }
 
     /// <summary>
@@ -158,7 +161,7 @@ namespace Senq {
         private int scrapeTasks = 0;
 
         /// <summary>
-        /// Initiate scraping based on the given Senq configuration.
+        /// Initiate scraping based on the given Senq configuration and configure RequestManager.
         /// </summary>
         /// <param name="conf">The Senq configuration for scraping.</param>
         public void Scrape(SenqConf conf) {
@@ -170,7 +173,7 @@ namespace Senq {
         }
 
         /// <summary>
-        /// Initiate scraping based on the given Senq configuration.
+        /// Initiate scraping based on the given Senq configuration and configure RequestManager.
         /// </summary>
         /// <param name="conf">CLI configuration for scraping.</param>
         internal void Scrape(CLISenqConf conf) {
@@ -204,9 +207,7 @@ namespace Senq {
             if (conf.userAgents != null && conf.userAgents.Count != 0) {
                 rm.ChangeUserAgents(conf.userAgents);
             }
-            if (conf.proxyAddresses != null && conf.proxyAddresses.Count != 0) {
-                rm.ChangeProxyClients(conf.proxyAddresses, conf.useHostAddress);
-            }
+            rm.ChangeProxyClients(conf.proxyAddresses, conf.useHostAddress);
         }
 
         /// <summary>
@@ -215,16 +216,20 @@ namespace Senq {
         /// <param name="conf">The configuration to use while scraping.</param>
         /// <param name="queue">Blocking collection to add matches to.</param>
         private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
-            Console.WriteLine($"{conf.webAddr}");
+            Console.WriteLine($" GET: {conf.webAddr}");
 
             string webPage = rm.GET(conf.webAddr);
-            Console.WriteLine($"GOT");
 
             HandleMatches(conf, queue, webPage);
 
             HandleLinks(conf, queue, webPage);
 
             DecrementScrapeTasks();
+            Console.WriteLine($"tasks: {scrapeTasks}");
+
+            if (scrapeTasks == 0) {
+                queue.CompleteAdding();
+            }
         }
 
         /// <summary>
@@ -294,9 +299,6 @@ namespace Senq {
         public void OutputHandler(BlockingCollection<(string, string)> queue, Action<string, string> output) {
             foreach (var (webAddress, content) in queue.GetConsumingEnumerable()) {
                 output(webAddress, content);
-                if (scrapeTasks == 0 && queue.Count == 0) { // if the scraping ended return
-                    return;
-                }
             }
         }
     }
