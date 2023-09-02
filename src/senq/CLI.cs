@@ -60,8 +60,11 @@ namespace Senq {
         [Option('t', "threads", HelpText = "Number of threads to use for multithreaded scraping.")]
         public int? threadCount { get; set; } = null;
 
-        [Option('m', "maxDepth", HelpText = "Maximum depth of following links.")]
-        public int maxDepth { get; set; } = 1;
+        [Option('x', "maxDepth", HelpText = "Maximum depth of following links.")]
+        public int maxDepth { get; set; } = 0;
+
+        [Option('s', "stayOnDomain", HelpText = "Can the scraper sleave starting domain?")]
+        public bool stayOnDomain { get; set; } = false;
     }
 
     /// <summary>
@@ -95,7 +98,7 @@ namespace Senq {
             Scraper scraper = new Scraper();
                 
             try {
-                scraper.Scrape(SenqConf.ToSenqConf(conf));
+                scraper.Scrape(SenqConf.ToSenqConf(conf)).GetAwaiter().GetResult();
             }
             catch (BadStartingAddressException e) {
                 Console.Error.WriteLine($"Error BadStartingAddressException: {e.Message}");

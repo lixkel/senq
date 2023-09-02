@@ -51,16 +51,16 @@ namespace Senq {
         /// </summary>
         /// <param name="webAddr">The URI to request.</param>
         /// <returns>The response content as a string.</returns>
-        public string GET(Uri webAddr) {             // TODO: http://localhost:8000/
-            HttpClient client = GetRandomClient();   // Error: Connection refused (localhost:8000)
+        public async Task<string> GET(Uri webAddr) {
+            HttpClient client = GetRandomClient();
 
-            var request = new HttpRequestMessage(HttpMethod.Get, webAddr); // GOT and still running
+            var request = new HttpRequestMessage(HttpMethod.Get, webAddr);
             request.Headers.UserAgent.ParseAdd(GetRandomUserAgent());
 
             try {
-                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) {
+                using (HttpResponseMessage response = await client.SendAsync(request)) {
                     response.EnsureSuccessStatusCode();
-                    return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return await response.Content.ReadAsStringAsync();
                 }
             }
             catch (HttpRequestException e) { // This exception is thrown by EnsureSuccessStatusCode
@@ -286,6 +286,13 @@ namespace Senq {
                 // If any exception occurs it's almost certain that the proxy isn't working.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Test if two Uris are from the same domain.
+        /// </summary>
+        public static bool FromSameDomain(Uri uri1, Uri uri2) {
+            return uri1.Host == uri2.Host;
         }
     }
 }

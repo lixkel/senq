@@ -49,9 +49,14 @@ namespace Senq {
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
 
         /// <summary>
-        /// Specifies the maximum depth the scrape should follow links. 
+        /// Specifies the maximum depth the scraper should follow links. 
         /// </summary>
         public int maxDepth { get; init; } = 0;
+
+        /// <summary>
+        /// Can the scraper leave starting domain?
+        /// </summary>
+        public bool stayOnDomain { get; init; } = false;
 
         /// <summary>
         /// Converts a CLI configuration to a Senq configuration. Using explicit and implicit operator
@@ -63,6 +68,7 @@ namespace Senq {
             targetRegex = originalConf.targetRegex;
             maxDepth = originalConf.maxDepth;
             useHostAddress = originalConf.useHostAddress;
+            stayOnDomain = originalConf.stayOnDomain;
 
             linkFinder = DataMiner.FindLinks;
             userAgents = originalConf.userAgents.ToList();
@@ -101,6 +107,7 @@ namespace Senq {
         public Action<string, string> output { get; init; }
         public Func<string, List<string>> linkFinder { get; init; }
         public int maxDepth { get; init; }
+        public bool stayOnDomain { get; init; }
 
         /// <summary>
         /// The current depth of scraping.
@@ -116,6 +123,7 @@ namespace Senq {
             webAddr = CheckStartingAddress(originalConf.webAddr);
             maxDepth = originalConf.maxDepth;
             linkFinder = originalConf.linkFinder;
+            stayOnDomain = originalConf.stayOnDomain;
 
             regex = new Regex(originalConf.targetRegex);
         }
@@ -162,27 +170,27 @@ namespace Senq {
         /// Initiate scraping based on the given Senq configuration and configure RequestManager.
         /// </summary>
         /// <param name="conf">The Senq configuration for scraping.</param>
-        public void Scrape(SenqConf conf) {
+        public async Task Scrape(SenqConf conf) {
             RmConf(conf);
 
             InternalSenqConf internalConf = new InternalSenqConf(conf);
 
-            Scrape(internalConf);
+            await Scrape(internalConf);
         }
 
         /// <summary>
         /// Initiate scraping based on the given Senq configuration and configure RequestManager.
         /// </summary>
         /// <param name="conf">CLI configuration for scraping.</param>
-        internal void Scrape(CLISenqConf conf) {
-            Scrape(SenqConf.ToSenqConf(conf));
+        internal async Task Scrape(CLISenqConf conf) {
+            await Scrape(SenqConf.ToSenqConf(conf));
         }
 
         /// <summary>
         /// Initiates data structures for scraping and starts thread to scrape the starting page.
         /// </summary>
         /// <param name="conf">Senq configuration for scraping.</param>
-        private void Scrape(InternalSenqConf conf) {
+        private async Task Scrape(InternalSenqConf conf) {
             BlockingCollection<(string, string)> queue = new BlockingCollection<(string, string)>();
 
             var outputTask = Task.Factory.StartNew(() => {
@@ -215,10 +223,10 @@ namespace Senq {
         /// </summary>
         /// <param name="conf">The configuration to use while scraping.</param>
         /// <param name="queue">Blocking collection to add matches to.</param>
-        private void ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
+        private async Task ScrapePage(InternalSenqConf conf, BlockingCollection<(string, string)> queue) {
             //Console.WriteLine($" GET: {conf.webAddr}");
 
-            string webPage = rm.GET(conf.webAddr);
+            string webPage = await rm.GET(conf.webAddr);
 
             HandleMatches(conf, queue, webPage);
 
@@ -260,8 +268,11 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                Uri? newWebAddr = RequestManager.FormatUri(link, conf.webAddr);
+                Uri? newWebAddr = RequestManager.FormatUri(link, conf.webAddr); // TODO: bitmap of visited pages
                 if (newWebAddr == null) {
+                    continue;
+                }
+                if (conf.stayOnDomain && !RequestManager.FromSameDomain(conf.webAddr, newWebAddr)) {
                     continue;
                 }
 
