@@ -141,7 +141,7 @@ namespace Senq {
         /// <returns>URI of the provided web address.</returns>
         /// <exception cref="BadStartingAddressException">Thrown when starting address for scraping is in bad format.</exception>
         private static Uri CheckStartingAddress(string address) {
-            Uri? newUri = RequestManager.FormatUri(address);
+            Uri? newUri = NetworkTools.FormatUri(address);
 
             if (newUri == null) {
                 throw new BadStartingAddressException();
@@ -282,11 +282,11 @@ namespace Senq {
             List<string> links = conf.linkFinder(webPage);
 
             foreach (string link in links) {
-                Uri? newWebAddr = RequestManager.FormatUri(link, webAddr); // TODO: bitmap of visited pages
+                Uri? newWebAddr = NetworkTools.FormatUri(link, webAddr); // TODO: bitmap of visited pages
                 if (newWebAddr == null) {
                     continue;
                 }
-                if (conf.stayOnDomain && !RequestManager.FromSameDomain(conf.webAddr, newWebAddr)) {
+                if (conf.stayOnDomain && !NetworkTools.FromSameDomain(conf.webAddr, newWebAddr)) {
                     continue;
                 }
                 if (visitedPages.Contains(newWebAddr)) {
