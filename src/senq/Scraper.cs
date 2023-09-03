@@ -166,6 +166,11 @@ namespace Senq {
         private int scrapeTasks = 0;
 
         /// <summary>
+        /// Map of already visited web pages.
+        /// </summary>
+        private HashSet<Uri> visitedPages = new HashSet<Uri>(); // TODO: test against HashSet<string>
+
+        /// <summary>
         /// Initiate scraping based on the given Senq configuration and configure RequestManager.
         /// </summary>
         /// <param name="conf">The Senq configuration for scraping.</param>
@@ -214,7 +219,7 @@ namespace Senq {
             if (conf.userAgents != null && conf.userAgents.Count != 0) {
                 rm.ChangeUserAgents(conf.userAgents);
             }
-            rm.ChangeProxyClients(conf.proxyAddresses, conf.useHostAddress);
+            rm.ChangeProxy(conf.proxyAddresses, conf.useHostAddress);
         }
 
         /// <summary>
@@ -226,6 +231,8 @@ namespace Senq {
                                       BlockingCollection<(string, string)> queue) {
 
             //Console.WriteLine($" GET: {conf.webAddr}");
+
+            visitedPages.Add(webAddr); // TODO: check performence if put into HandleLinks
 
             string webPage = await rm.GET(conf.webAddr);
 
@@ -280,6 +287,9 @@ namespace Senq {
                     continue;
                 }
                 if (conf.stayOnDomain && !RequestManager.FromSameDomain(conf.webAddr, newWebAddr)) {
+                    continue;
+                }
+                if (visitedPages.Contains(newWebAddr)) {
                     continue;
                 }
 
