@@ -11,7 +11,7 @@ namespace Senq {
     /// <summary>
     /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
     /// </summary>
-    public class RequestManager {
+    public class RequestManager : IWebHandler {
         private List<HttpClient> clients = new List<HttpClient>();
     
         /// <summary>
@@ -33,7 +33,7 @@ namespace Senq {
         private const string TestAddress = "https://www.google.com/";
 
         public RequestManager() {
-            ChangeProxyClients(null, true);
+            ChangeProxy(null, true);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Senq {
         }
 
         /// <summary>
-        /// Blocking method that sends a GET request to a given URL and returns its content.
+        /// Non-blocking method that sends a GET request to a given URL and returns its content using HttpClient.
         /// </summary>
         /// <param name="webAddr">The URI to request.</param>
         /// <returns>The response content as a string.</returns>
@@ -82,7 +82,7 @@ namespace Senq {
         /// </summary>
         /// <param name="newUserAgents">List of user agent strings.</param>
         public void ChangeUserAgents(List<string> newUserAgents) {
-            userAgents = newUserAgents; // TODO: User Agent verification
+            userAgents = newUserAgents;
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace Senq {
         /// <param name="proxyAddresses">List of proxy addresses.</param>
         /// <exception cref="NoWorkingClientsException">Thrown when all provided proxies are non functioning and Host address can't be used.</exception>
         /// <exception cref="NoConnectionException">Thrown when connection from host to the internet couldn't be established.</exception>
-        public void ChangeProxyClients(List<string>? proxyAddresses, bool useHostAddress) {
+        public void ChangeProxy(List<string>? proxyAddresses, bool useHostAddress) {
             HttpClient httpClient = new HttpClient();
 
             if (!CheckConnection(httpClient).Result) {
