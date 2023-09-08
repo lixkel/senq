@@ -12,12 +12,17 @@ namespace Senq {
     /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
     /// </summary>
     public class RequestManager : IWebHandler {
+
+        /// <summary>
+        /// One client for each proxy plus host address if enabled.
+        /// </summary>
         private List<HttpClient> clients = new List<HttpClient>();
     
         /// <summary>
         /// Thread-local random to ensure thread safety when generating random numbers
         /// </summary>
-        private readonly ThreadLocal<Random> threadLocalRandom = new ThreadLocal<Random>(() => new Random(Interlocked.Increment(ref seed))); // TODO: try looking for alternatives
+        private readonly ThreadLocal<Random> threadLocalRandom = new ThreadLocal<Random>(
+                                                            () => new Random(Interlocked.Increment(ref seed))); // TODO: try looking for alternatives
 
         private static int seed = Environment.TickCount;
         private List<String> userAgents = new List<string> {

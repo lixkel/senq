@@ -45,6 +45,7 @@ namespace Senq {
                 return FindAll(input, regex);
             }
             catch (ArgumentException) {
+                // Catch any issues with the provided regex pattern
                 Console.WriteLine($"Invalid pattern: {pattern}");
                 throw;
             }

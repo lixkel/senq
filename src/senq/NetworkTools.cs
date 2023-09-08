@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Senq {
 
     /// <summary>
-    /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
+    /// Collection of static functions for working with network related stuff used by IWebHandler classes.
     /// </summary>
     public static class NetworkTools {
 
@@ -17,7 +17,7 @@ namespace Senq {
         /// Address that will be used for testing internet connection by <see cref="CheckConnection"/>
         /// Note: Feel free to replace it with any other reliable URL if needed.
         /// </summary>
-        private const string TestAddress = "https://www.google.com/";
+        private static string TestAddress = "https://www.google.com/";
 
         /// <summary>
         /// Checks if HttpClient provides an active internet connection.
