@@ -14,9 +14,8 @@ namespace Senq {
     /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
     /// </summary>
     public class PupepeteerManager : IWebHandler {
-       private readonly List<Browser> clients = new List<Browser>();
+        private readonly List<IBrowser> clients = new List<IBrowser>();
 
-    
         /// <summary>
         /// Thread-local random to ensure thread safety when generating random numbers
         /// </summary>
@@ -36,8 +35,9 @@ namespace Senq {
         private const string TestAddress = "https://www.google.com/";
 
         public PupepeteerManager() {
-            new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision).Result();
-            ChangeProxyClients(null, true);
+            BrowserFetcher browserFetcher = new BrowserFetcher();
+            var result = browserFetcher.DownloadAsync(BrowserTag.Latest).Result;
+            ChangeProxy(null, true);
         }
 
         /// <summary>
@@ -46,7 +46,8 @@ namespace Senq {
         /// <param name="proxyAddresses">List of proxy addresses.</param>
         /// <param name="newUserAgents">List of user agent strings.</param>
         public PupepeteerManager(List<String> proxyAddresses, List<string> newUserAgents) {
-            new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision).Result();
+            BrowserFetcher browserFetcher = new BrowserFetcher();
+            var result = browserFetcher.DownloadAsync(BrowserTag.Latest).Result;
             ChangeProxy(proxyAddresses, true);
             userAgents = newUserAgents;
         }
@@ -57,16 +58,16 @@ namespace Senq {
         /// <param name="webAddr">The URI to request.</param>
         /// <returns>Whole web page in string.</returns>
         public async Task<string> GET(Uri webAddr) {
-            new Browser browser = GetRandomClient();
-            using (var newTab = await browser.NewPageAsync()) { // TODO: delete
-                await newTab.setUserAgent(GetRandomUserAgent());
+            IBrowser browser = GetRandomClient();
+            using (IPage newTab = await browser.NewPageAsync()) { // TODO: delete
+                await newTab.SetUserAgentAsync(GetRandomUserAgent());
                 await newTab.GoToAsync(webAddr.ToString(),
                                        new NavigationOptions { // Wait until HTML document's DOM has been loaded and parsed.
-                                            WaitUntil = WaitUntilNavigation.DomContentLoaded
+                                            WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.DOMContentLoaded }
                                        });
                 
-                // Get the fully loaded page content
-                return await page.GetContentAsync();
+                // Get the content of fully loaded page
+                return await newTab.GetContentAsync();
             }
         }
 
@@ -83,9 +84,17 @@ namespace Senq {
         /// Returns a randomly chosen HttpClient instance.
         /// </summary>
         /// <returns>An instance of HttpClient.</returns>
-        private Browser GetRandomClient() {
+        private IBrowser GetRandomClient() {
             int index = threadLocalRandom.Value.Next(clients.Count);
             return clients[index];
+        }
+
+        /// <summary>
+        /// Replaces the current list of user agents with a new one.
+        /// </summary>
+        /// <param name="newUserAgents">List of user agent strings.</param>
+        public void ChangeUserAgents(List<string> newUserAgents) {
+            userAgents = newUserAgents;
         }
 
         /// <summary>
@@ -108,13 +117,13 @@ namespace Senq {
                 validProxies = NetworkTools.NewClients(proxyAddresses).Select(c => c.Item2).ToList();
             }
 
-            List<Browser> newBrowsers = CreatePuppeteerFromProxy(validProxies);
+            List<IBrowser> newBrowsers = CreatePuppeteerFromProxy(validProxies);
 
             if (useHostAddress) {
-                newBrowsers.Add(Puppeteer.LaunchAsync(new LaunchOptions()));
+                newBrowsers.Add(Puppeteer.LaunchAsync(new LaunchOptions()).Result);
             }
 
-            if (newClients.Count == 0) {
+            if (newBrowsers.Count == 0) {
                 throw new NoWorkingClientsException();
             }
 
@@ -125,15 +134,15 @@ namespace Senq {
         /// Returns newly created puppeteer instances using provided proxy addresses without testing.
         /// </summary>
         /// <param name="proxyAddresses">List of proxy addresses.</param>
-        public static async List<Browser> CreatePuppeteerFromProxy(List<string> proxyAddresses) {
-             List<Browser> browsers = new List<Browser>();
+        public static List<IBrowser> CreatePuppeteerFromProxy(List<string> proxyAddresses) {
+             List<IBrowser> browsers = new List<Browser>();
         
             foreach (var proxy in proxyAddresses) {
                 var launchOptions = new LaunchOptions {
                     Args = new[] { $"--proxy-server={proxy}" }
                 };
                 
-                Browser browser = Puppeteer.LaunchAsync(launchOptions).Result;
+                IBrowser browser = Puppeteer.LaunchAsync(launchOptions).Result;
                 browsers.Add(browser);
             }
 
