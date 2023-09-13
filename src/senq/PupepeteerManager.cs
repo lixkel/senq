@@ -14,7 +14,7 @@ namespace Senq {
     /// Manages HTTP requests with options for random user agent rotation and random proxy rotation.
     /// </summary>
     public class PupepeteerManager : IWebHandler {
-        private readonly List<IBrowser> clients = new List<IBrowser>();
+        private List<IBrowser> clients = new List<IBrowser>();
 
         /// <summary>
         /// Thread-local random to ensure thread safety when generating random numbers
@@ -135,7 +135,7 @@ namespace Senq {
         /// </summary>
         /// <param name="proxyAddresses">List of proxy addresses.</param>
         public static List<IBrowser> CreatePuppeteerFromProxy(List<string> proxyAddresses) {
-             List<IBrowser> browsers = new List<Browser>();
+             List<IBrowser> browsers = new List<IBrowser>();
         
             foreach (var proxy in proxyAddresses) {
                 var launchOptions = new LaunchOptions {

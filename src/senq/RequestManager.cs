@@ -41,7 +41,7 @@ namespace Senq {
         /// <param name="proxyAddresses">List of proxy addresses.</param>
         /// <param name="newUserAgents">List of user agent strings.</param>
         public RequestManager(List<String> proxyAddresses, List<string> newUserAgents) {
-            clients = NewClients(proxyAddresses);
+            // clients = NetworkTools.NewClients(proxyAddresses); // TODO: update this shouldnt be called like this
             userAgents = newUserAgents;
         }
 
@@ -100,7 +100,7 @@ namespace Senq {
             List<HttpClient> newClients = new List<HttpClient>();
 
             if (proxyAddresses != null) {
-                newClients = NewClients(proxyAddresses);
+                newClients = NetworkTools.NewClients(proxyAddresses).Select(c => c.Item1).ToList();
             }
 
             if (useHostAddress) {
@@ -130,40 +130,6 @@ namespace Senq {
         private HttpClient GetRandomClient() {
             int index = threadLocalRandom.Value.Next(clients.Count);
             return clients[index];
-        }
-
-        /// <summary>
-        /// Creates a list of HttpClient instances from provided proxy addresses. HttpClients are tested if the proxy's are working.
-        /// </summary>
-        /// <param name="proxyAddresses">List of proxy addresses.</param>
-        /// <returns>List of workin HttpClient instances based on provided proxy addresses.</returns>
-        public static List<HttpClient> NewClients(List<String> proxyAddresses) {
-            var httpClientTasks = new List<Task<HttpClient?>>();
-
-            foreach (string proxyAddress in proxyAddresses) {
-                HttpClientHandler handler = new HttpClientHandler {
-                    Proxy = new WebProxy(proxyAddress, false),
-                    UseProxy = true
-                };
-
-                HttpClient newClient = new HttpClient(handler);
-                httpClientTasks.Add(NetworkTools.TestProxy(newClient));
-            }
-
-            List<HttpClient> httpClients = new List<HttpClient>();
-
-            // Test each proxy and await their results
-            while (httpClientTasks.Any()) {
-                var completedTask = Task.WhenAny(httpClientTasks).Result;
-                httpClientTasks.Remove(completedTask);
-                var newClient = completedTask.Result;
-
-                if (newClient != null) {
-                    httpClients.Add(newClient);
-                }
-            }
-
-            return httpClients;
         }
     }
 }

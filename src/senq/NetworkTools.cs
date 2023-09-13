@@ -108,15 +108,50 @@ namespace Senq {
         }
 
         /// <summary>
+        /// Creates a list of HttpClient instances from provided proxy addresses. HttpClients are tested if the proxy's are working.
+        /// </summary>
+        /// <param name="proxyAddresses">List of proxy addresses.</param>
+        /// <returns>List of workin HttpClient instances based on provided proxy addresses.</returns>
+        public static List<(HttpClient, string)> NewClients(List<String> proxyAddresses) {
+            var httpClientTasks = new List<Task<(HttpClient, string)?>>();
+
+            foreach (string proxyAddress in proxyAddresses) {
+                HttpClientHandler handler = new HttpClientHandler {
+                    Proxy = new WebProxy(proxyAddress, false),
+                    UseProxy = true
+                };
+
+                HttpClient newClient = new HttpClient(handler);
+
+                httpClientTasks.Add(NetworkTools.TestProxy(newClient, proxyAddress));
+            }
+
+            List<(HttpClient, string)> httpClients = new List<(HttpClient, string)>();
+
+            // Test each proxy and await their results
+            while (httpClientTasks.Any()) {
+                var completedTask = Task.WhenAny(httpClientTasks).Result;
+                httpClientTasks.Remove(completedTask);
+                var newClient = completedTask.Result;
+
+                if (newClient != null) {
+                    httpClients.Add(newClient.Value);
+                }
+            }
+
+            return httpClients;
+        }
+
+        /// <summary>
         /// Tests a proxy by sending an api request and checking if the IP matches the proxy's IP.
         /// </summary>
         /// <param name="client">The HttpClient instance to test.</param>
         /// <returns>The tested HttpClient if the proxy is working, otherwise null.</returns>
-        public static async Task<HttpClient?> TestProxy(HttpClient client) {
+        public static async Task<(HttpClient, string)?> TestProxy(HttpClient client, string proxyAddress) {
             const string apiAddress = "https://api.ipify.org?format=json";
 
             try {
-                var response = client.GetStringAsync(apiAddress).Result;
+                var response =  await client.GetStringAsync(apiAddress); // TODO: make it more async move GetHostAddressesAsync here
                 using (JsonDocument doc = JsonDocument.Parse(response)) {
                     if (doc.RootElement.TryGetProperty("ip", out var ipElement) && ipElement.GetString() != null) {
                         string returnedIp = ipElement.GetString();
@@ -127,7 +162,7 @@ namespace Senq {
                         // Check if any of the resolved IP addresses match the returned IP
                         foreach (var proxyIp in proxyIpAddresses) {
                             if (proxyIp.ToString() == returnedIp) {
-                                return client; // The returned IP matches one of the proxy's IP addresses
+                                return (client, proxyAddress); // The returned IP matches one of the proxy's IP addresses
                             }
                         }
                     }
