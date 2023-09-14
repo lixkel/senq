@@ -37,7 +37,7 @@ namespace Senq {
         public string targetRegex { get; set; }
 
         [Option('m', "mode", Default = ScrapingMode.d, HelpText = "Mode of scraping: Direct for HTTP requests or JavaScript for executing scripts with Google V8 engine.")]
-        public ScrapingMode mode { get; set; }
+        public ScrapingMode mode { get; set; } = ScrapingMode.d;
 
         [Option('p', "proxy", Separator = ',', HelpText = "Proxy server address to use for scraping. This helps in hiding IP and avoiding website restrictions.")]
         public IEnumerable<string>? proxyAddresses { get; set; } = null;

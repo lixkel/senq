@@ -49,6 +49,11 @@ namespace Senq {
         public Func<string, List<string>> linkFinder { get; init; } = DataMiner.FindLinks;
 
         /// <summary>
+        /// Factory method for IWebHandler class that takes care of all network related operations.
+        /// </summary>
+        public Func<IWebHandler> webHandlerFactory { get; init; } = () => new RequestManager();
+
+        /// <summary>
         /// Specifies the maximum depth the scraper should follow links. 
         /// </summary>
         public int maxDepth { get; init; } = 0;
@@ -85,6 +90,16 @@ namespace Senq {
 
                 case OutputType.db:
                     output = Output.DatabaseWriter.GetWriter(originalConf.dbString);
+                    break;
+            }
+
+            switch (originalConf.mode) {
+                case ScrapingMode.d:
+                    webHandlerFactory = () => new RequestManager();
+                    break;
+
+                case ScrapingMode.js:
+                    webHandlerFactory = () => new PuppeteerManager();
                     break;
             }
         }
@@ -158,7 +173,7 @@ namespace Senq {
         /// <summary>
         /// Handles all interactions with network for all threads.
         /// </summary>
-        private RequestManager rm = new RequestManager();
+        private IWebHandler rm = new RequestManager();
 
         /// <summary>
         /// Number of currently running scraping tasks.
@@ -216,6 +231,8 @@ namespace Senq {
         /// </summary>
         /// <param name="conf">The configuration to apply to the Request Manager.</param>
         private void RmConf(SenqConf conf) {
+            rm = conf.webHandlerFactory();
+
             if (conf.userAgents != null && conf.userAgents.Count != 0) {
                 rm.ChangeUserAgents(conf.userAgents);
             }
