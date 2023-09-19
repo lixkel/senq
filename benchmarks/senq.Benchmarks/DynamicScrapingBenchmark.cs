@@ -13,7 +13,7 @@ namespace Benchmarks {
             targetRegex = @"(?<target>spyware)",
             useHostAddress = true,
             output = Output.CSVString.GetWriter(str => { result = str; }),
-            webHandlerFactory = () => new PeppeteerManager();
+            webHandlerFactory = () => new PuppeteerManager(),
             maxDepth = 1,
             stayOnDomain = true,
         };

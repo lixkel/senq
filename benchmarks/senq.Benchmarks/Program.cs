@@ -6,6 +6,7 @@ namespace Benchmarks {
         public static void Main(string[] args) {
             //throw new System.Exception();
             var summary = BenchmarkRunner.Run<StaticBenchmarks>();
+            summary = BenchmarkRunner.Run<DynamicBenchmarks>();
         }
     }
 }
