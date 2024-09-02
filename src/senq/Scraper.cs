@@ -62,6 +62,7 @@ namespace Senq {
         /// Can the scraper leave starting domain?
         /// </summary>
         public bool stayOnDomain { get; init; } = false;
+        // TODO: add port option
 
         /// <summary>
         /// Converts a CLI configuration to a Senq configuration. Using explicit and implicit operator
@@ -260,6 +261,7 @@ namespace Senq {
             DecrementScrapeTasks();
             //Console.WriteLine($"tasks: {scrapeTasks}");
 
+            // TODO: potential race condition?
             if (scrapeTasks == 0) {
                 queue.CompleteAdding();
             }
@@ -310,6 +312,8 @@ namespace Senq {
                     continue;
                 }
 
+                // TODO: look at 404s
+                // TODO: use pool
                 Task.Run(() => ScrapePage(conf, newWebAddr, depth+1, queue));
                 IncrementScrapeTasks();
             }

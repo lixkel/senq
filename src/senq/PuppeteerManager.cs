@@ -28,15 +28,9 @@ namespace Senq {
             "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/116.0"
         };
 
-        /// <summary>
-        /// Address that will be used for testing internet connection by <see cref="CheckConnection"/>
-        /// Note: Feel free to replace it with any other reliable URL if needed.
-        /// </summary>
-        private const string TestAddress = "https://www.google.com/";
-
         public PuppeteerManager() {
             BrowserFetcher browserFetcher = new BrowserFetcher();
-            var result = browserFetcher.DownloadAsync(BrowserTag.Latest).Result;
+            browserFetcher.DownloadAsync().Wait();
             ChangeProxy(null, true);
         }
 
@@ -47,7 +41,7 @@ namespace Senq {
         /// <param name="newUserAgents">List of user agent strings.</param>
         public PuppeteerManager(List<String> proxyAddresses, List<string> newUserAgents) {
             BrowserFetcher browserFetcher = new BrowserFetcher();
-            var result = browserFetcher.DownloadAsync(BrowserTag.Latest).Result;
+            browserFetcher.DownloadAsync().Wait();
             ChangeProxy(proxyAddresses, true);
             userAgents = newUserAgents;
         }
@@ -59,7 +53,8 @@ namespace Senq {
         /// <returns>Whole web page in string.</returns>
         public async Task<string> GET(Uri webAddr) {
             IBrowser browser = GetRandomClient();
-            using (IPage newTab = await browser.NewPageAsync()) { // TODO: delete
+            Console.WriteLine("GET: " + webAddr.ToString());
+            using (var newTab = await browser.NewPageAsync()) { // TODO: delete
                 await newTab.SetUserAgentAsync(GetRandomUserAgent());
                 await newTab.GoToAsync(webAddr.ToString(),
                                        new NavigationOptions { // Wait until HTML document's DOM has been loaded and parsed.
@@ -120,7 +115,10 @@ namespace Senq {
             List<IBrowser> newBrowsers = CreatePuppeteerFromProxy(validProxies);
 
             if (useHostAddress) {
-                newBrowsers.Add(Puppeteer.LaunchAsync(new LaunchOptions()).Result);
+                newBrowsers.Add(Puppeteer.LaunchAsync(new LaunchOptions {
+                        Headless = true
+                    }).Result
+                );
             }
 
             if (newBrowsers.Count == 0) {
@@ -134,6 +132,7 @@ namespace Senq {
         /// Returns newly created puppeteer instances using provided proxy addresses without testing.
         /// </summary>
         /// <param name="proxyAddresses">List of proxy addresses.</param>
+        /// TODO: FIX ME
         public static List<IBrowser> CreatePuppeteerFromProxy(List<string> proxyAddresses) {
              List<IBrowser> browsers = new List<IBrowser>();
         

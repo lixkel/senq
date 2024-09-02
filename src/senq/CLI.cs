@@ -63,7 +63,7 @@ namespace Senq {
         [Option('x', "maxDepth", HelpText = "Maximum depth of following links.")]
         public int maxDepth { get; set; } = 0;
 
-        [Option('s', "stayOnDomain", HelpText = "Can the scraper sleave starting domain?")]
+        [Option('s', "stayOnDomain", HelpText = "Can the scraper leave starting domain?")]
         public bool stayOnDomain { get; set; } = false;
     }
 
