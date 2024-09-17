@@ -29,7 +29,8 @@ namespace Benchmarks
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(
-                    Path.Combine(Directory.GetCurrentDirectory(), "../../site/spyware.neocities.org")),
+                    // TODO: Navigete to git root directory
+                    Path.Combine(Directory.GetCurrentDirectory(), "../../www")),
                 RequestPath = ""
             });
 

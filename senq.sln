@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "senq.Benchmarks", "benchmarks\senq.Benchmarks\senq.Benchmarks.csproj", "{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E0E83855-49D4-4DBF-B662-50AC334604AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "senq.Tests", "tests\senq.Tests\senq.Tests.csproj", "{59E48474-0396-418C-8DF8-B6CD61AA699E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +32,14 @@ Global
 		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59E48474-0396-418C-8DF8-B6CD61AA699E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59E48474-0396-418C-8DF8-B6CD61AA699E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59E48474-0396-418C-8DF8-B6CD61AA699E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59E48474-0396-418C-8DF8-B6CD61AA699E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{68CFCFA7-7EB1-4821-B801-1E092CB178E2} = {0014C61B-76D8-4865-8A50-F5FD05DB6192}
 		{5C30DD17-DD9F-4D00-AFDC-CADAC033856A} = {357F1023-14F6-48CA-A487-1EB57EA3F49E}
+		{59E48474-0396-418C-8DF8-B6CD61AA699E} = {E0E83855-49D4-4DBF-B662-50AC334604AE}
 	EndGlobalSection
 EndGlobal
