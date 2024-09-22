@@ -12,11 +12,12 @@ namespace Server {
     /// </summary>
     public class HttpServer : IDisposable {
         private readonly CancellationTokenSource _cancellationTokenS = new CancellationTokenSource();
-        private readonly Task _serverTask;
+        private readonly Task _startServerTask;
+        private Task _serverTask;
 
         public HttpServer() {
             // Start the server in new thread with cancellation token
-            _serverTask = Task.Run(() => StartServer(_cancellationTokenS.Token));
+            _startServerTask = Task.Run(() => StartServer(_cancellationTokenS.Token));
         }
 
         private void StartServer(CancellationToken cancellationToken) {
@@ -26,7 +27,7 @@ namespace Server {
             // Setup local http server directory
             app.UseStaticFiles(new StaticFileOptions {
                 FileProvider = new PhysicalFileProvider(
-                    // TODO: Navigate to git root directory
+                    // TODO: Navigate to git root directory automatically
                     Path.Combine(Directory.GetCurrentDirectory(), "../../../../../www/")),
                 RequestPath = ""
             });
