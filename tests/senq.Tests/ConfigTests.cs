@@ -20,8 +20,8 @@ namespace senq.Tests {
         [InlineData("<invalid>http://example.com")]
         [InlineData("http://invalid space.com")]
         public void BadStartingAddress(string webAddr) {
+            // Arrange
             string result = "";
-
             var conf = new SenqConf  {
                 webAddr = webAddr,
                 targetRegex = "",
@@ -32,6 +32,8 @@ namespace senq.Tests {
             };
             
             Scraper scraper = new Scraper();
+
+            // Assert
             Assert.Throws<BadStartingAddressException>(() => scraper.Scrape(conf).GetAwaiter().GetResult());
         }
 
@@ -46,8 +48,8 @@ namespace senq.Tests {
         [InlineData("(abc")]
         [InlineData("(?<name")]
         public void BadRegex(string pattern) {
+            // Arrange
             string result = "";
-
             var conf = new SenqConf  {
                 webAddr = "http://localhost/index.html",
                 targetRegex = pattern,
@@ -58,6 +60,8 @@ namespace senq.Tests {
             };
             
             Scraper scraper = new Scraper();
+
+            // Assert
             Assert.Throws<BadRegexException>(() => scraper.Scrape(conf).GetAwaiter().GetResult());
         }
 
@@ -71,8 +75,8 @@ namespace senq.Tests {
         [InlineData(-22)]
         [InlineData(int.MinValue)]
         public void InvalidMaxDepth(int maxDepth) {
+            // Arrange
             string result = "";
-
             var conf = new SenqConf  {
                 webAddr = "http://localhost/index.html",
                 targetRegex = "",
@@ -81,8 +85,10 @@ namespace senq.Tests {
                 maxDepth = maxDepth,
                 stayOnDomain = true,
             };
-            
+
             Scraper scraper = new Scraper();
+
+            // Assert
             Assert.Throws<MaxDepthException>(() => scraper.Scrape(conf).GetAwaiter().GetResult());
         }
     }
