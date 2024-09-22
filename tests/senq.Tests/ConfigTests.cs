@@ -60,5 +60,30 @@ namespace senq.Tests {
             Scraper scraper = new Scraper();
             Assert.Throws<BadRegexException>(() => scraper.Scrape(conf).GetAwaiter().GetResult());
         }
+
+
+        /// <summary>
+        /// Tests if providing an invalid maxDepth throws a BadRegexException
+        /// </summary>
+        /// <param name="maxDepth">Invalid maxDepth</param>
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(-22)]
+        [InlineData(int.MinValue)]
+        public void InvalidMaxDepth(int maxDepth) {
+            string result = "";
+
+            var conf = new SenqConf  {
+                webAddr = "http://localhost/index.html",
+                targetRegex = "",
+                useHostAddress = true,
+                output = Output.CSVString.GetWriter(str => { result = str; }),
+                maxDepth = maxDepth,
+                stayOnDomain = true,
+            };
+            
+            Scraper scraper = new Scraper();
+            Assert.Throws<MaxDepthException>(() => scraper.Scrape(conf).GetAwaiter().GetResult());
+        }
     }
 }

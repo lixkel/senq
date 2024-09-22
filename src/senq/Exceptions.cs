@@ -27,6 +27,7 @@ namespace Senq {
         }
     }
 
+
     /// <summary>
     /// Represents errors that occur when the first provided address is invalid or poorly formatted.
     /// </summary>
@@ -52,6 +53,7 @@ namespace Senq {
         public BadStartingAddressException(string message, Exception innerException) : base(message, innerException) {
         }
     }
+
 
     /// <summary>
     /// Represents error that occurs when all the provided prozy addresses are non functioning and the Host address
@@ -80,6 +82,7 @@ namespace Senq {
         }
     }
 
+
     /// <summary>
     /// Represents error that occurs when all connection from host to the internet couldn't be established.
     /// </summary>
@@ -106,6 +109,7 @@ namespace Senq {
         }
     }
 
+
     /// <summary>
     /// Represents error that occurs when bad regex string is provided.
     /// </summary>
@@ -113,7 +117,7 @@ namespace Senq {
         /// <summary>
         /// Initializes a new instance of the <see cref="BadRegexException"/> class.
         /// </summary>
-        public BadRegexException() : base("Connection from host to the internet couldn't be established") {
+        public BadRegexException() : base("Invalid regex pattern was provided") {
         }
 
         /// <summary>
@@ -129,6 +133,33 @@ namespace Senq {
         /// <param name="message">Error message that explains the reason for the exception.</param>
         /// <param name="innerException">Exception that is the cause of the current exception.</param>
         public BadRegexException(string message, Exception innerException) : base(message, innerException) {
+        }
+    }
+
+
+    /// <summary>
+    /// Represents error that occurs when invalid MaxDepth is provided.
+    /// </summary>
+    public class MaxDepthException : SenqException {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MaxDepthException"/> class.
+        /// </summary>
+        public MaxDepthException() : base("Invalid MaxDepth value was provided") {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MaxDepthException"/> class with a specified error message.
+        /// </summary>
+        /// <param name="message">Message that describes this exception.</param>
+        public MaxDepthException(string message) : base(message) {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MaxDepthException"/> class with a specified error message and inner exception.
+        /// </summary>
+        /// <param name="message">Error message that explains the reason for the exception.</param>
+        /// <param name="innerException">Exception that is the cause of the current exception.</param>
+        public MaxDepthException(string message, Exception innerException) : base(message, innerException) {
         }
     }
 }

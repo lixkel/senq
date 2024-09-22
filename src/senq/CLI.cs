@@ -112,6 +112,9 @@ namespace Senq {
             catch (BadRegexException e) {
                 Console.Error.WriteLine($"Error BadRegexException: {e.Message}");
             }
+            catch (MaxDepthException e) {
+                Console.Error.WriteLine($"Error MaxDepthException: {e.Message}");
+            }
         }
 
         /// <summary>

@@ -133,13 +133,14 @@ namespace Senq {
         /// Initializes a new instance of the <see cref="InternalSenqConf"/> class using the provided <see cref="SenqConf"/>.
         /// Exceptions are thrown when the provided configuration is in bad format, it's not done earlier because its not good practice to throw exceptions in setters
         /// </summary>
-        /// <param name="originalConf">The CLI configuration to convert from.</param>
-        /// <exception cref="BadStartingAddressException">Thrown when starting web address for scraping is in bad format.</exception>
-        /// <exception cref="BadRegexException">Thrown when provided regex is in bad format.</exception>
+        /// <param name="originalConf">The CLI configuration to convert from</param>
+        /// <exception cref="BadStartingAddressException">Thrown when starting web address for scraping is in bad format</exception>
+        /// <exception cref="BadRegexException">Thrown when provided regex is in bad format</exception>
+        /// <exception cref="MaxDepthException">Thrown when max depth is invalid</exception>
         public InternalSenqConf(SenqConf originalConf) {
             output = originalConf.output;
             webAddr = CheckStartingAddress(originalConf.webAddr);
-            maxDepth = originalConf.maxDepth;
+            maxDepth = CheckMaxDepth(originalConf.maxDepth);
             linkFinder = originalConf.linkFinder;
             stayOnDomain = originalConf.stayOnDomain;
 
@@ -171,6 +172,19 @@ namespace Senq {
                 throw new BadStartingAddressException();
             }
             return newUri;
+        }
+
+        /// <summary>
+        /// Checks if the provided max depth is valid
+        /// </summary>
+        /// <param name="depth">Max depth to be checked</param>
+        /// <returns>Validated max depth value</returns>
+        /// <exception cref="MaxDepthException">Thrown when max depth is invalid</exception>
+        private static int CheckMaxDepth(int depth) {
+            if (depth < 0) {
+                throw new MaxDepthException(); // TODO: add message
+            }
+            return depth;
         }
     }
 
