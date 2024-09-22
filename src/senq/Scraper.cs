@@ -131,8 +131,11 @@ namespace Senq {
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InternalSenqConf"/> class using the provided <see cref="SenqConf"/>.
+        /// Exceptions are thrown when the provided configuration is in bad format, it's not done earlier because its not good practice to throw exceptions in setters
         /// </summary>
         /// <param name="originalConf">The CLI configuration to convert from.</param>
+        /// <exception cref="BadStartingAddressException">Thrown when starting web address for scraping is in bad format.</exception>
+        /// <exception cref="BadRegexException">Thrown when provided regex is in bad format.</exception>
         public InternalSenqConf(SenqConf originalConf) {
             output = originalConf.output;
             webAddr = CheckStartingAddress(originalConf.webAddr);
@@ -140,7 +143,12 @@ namespace Senq {
             linkFinder = originalConf.linkFinder;
             stayOnDomain = originalConf.stayOnDomain;
 
-            regex = new Regex(originalConf.targetRegex);
+            try {
+                regex = new Regex(originalConf.targetRegex);
+            }
+            catch (Exception) {
+                throw new BadRegexException();
+            }
         }
 
         /// <summary>
@@ -155,7 +163,7 @@ namespace Senq {
         /// </summary>
         /// <param name="address">Web address to be checked.</param>
         /// <returns>URI of the provided web address.</returns>
-        /// <exception cref="BadStartingAddressException">Thrown when starting address for scraping is in bad format.</exception>
+        /// <exception cref="BadStartingAddressException">Thrown when starting web address for scraping is in bad format.</exception>
         private static Uri CheckStartingAddress(string address) {
             Uri? newUri = NetworkTools.FormatUri(address);
 

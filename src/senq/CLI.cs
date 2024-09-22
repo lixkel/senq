@@ -109,6 +109,9 @@ namespace Senq {
             catch (NoConnectionException e) {
                 Console.Error.WriteLine($"Error NoConnectionException: {e.Message}");
             }
+            catch (BadRegexException e) {
+                Console.Error.WriteLine($"Error BadRegexException: {e.Message}");
+            }
         }
 
         /// <summary>

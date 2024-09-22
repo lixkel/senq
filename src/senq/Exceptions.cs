@@ -105,4 +105,30 @@ namespace Senq {
         public NoConnectionException(string message, Exception innerException) : base(message, innerException) {
         }
     }
+
+    /// <summary>
+    /// Represents error that occurs when bad regex string is provided.
+    /// </summary>
+    public class BadRegexException : SenqException {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BadRegexException"/> class.
+        /// </summary>
+        public BadRegexException() : base("Connection from host to the internet couldn't be established") {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BadRegexException"/> class with a specified error message.
+        /// </summary>
+        /// <param name="message">Message that describes this exception.</param>
+        public BadRegexException(string message) : base(message) {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BadRegexException"/> class with a specified error message and inner exception.
+        /// </summary>
+        /// <param name="message">Error message that explains the reason for the exception.</param>
+        /// <param name="innerException">Exception that is the cause of the current exception.</param>
+        public BadRegexException(string message, Exception innerException) : base(message, innerException) {
+        }
+    }
 }
