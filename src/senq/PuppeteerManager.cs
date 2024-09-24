@@ -58,9 +58,10 @@ namespace Senq {
                 await newTab.SetUserAgentAsync(GetRandomUserAgent());
                 await newTab.GoToAsync(webAddr.ToString(),
                                        new NavigationOptions { // Wait until HTML document's DOM has been loaded and parsed.
-                                            WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.DOMContentLoaded }
+                                            WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.Load }
                                        });
                 
+                await Task.Delay(10000);
                 // Get the content of fully loaded page
                 return await newTab.GetContentAsync();
             }
@@ -116,6 +117,7 @@ namespace Senq {
 
             if (useHostAddress) {
                 newBrowsers.Add(Puppeteer.LaunchAsync(new LaunchOptions {
+                    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" },
                         Headless = true
                     }).Result
                 );
@@ -138,7 +140,7 @@ namespace Senq {
         
             foreach (var proxy in proxyAddresses) {
                 var launchOptions = new LaunchOptions {
-                    Args = new[] { $"--proxy-server={proxy}" }
+                    Args = new[] { $"--proxy-server={proxy}",  "--no-sandbox", "--disable-setuid-sandbox" }
                 };
                 
                 IBrowser browser = Puppeteer.LaunchAsync(launchOptions).Result;
