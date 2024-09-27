@@ -53,7 +53,7 @@ namespace Senq {
         /// <returns>Whole web page in string.</returns>
         public async Task<string> GET(Uri webAddr) {
             IBrowser browser = GetRandomClient();
-            Console.WriteLine("GET: " + webAddr.ToString());
+            //Console.WriteLine("GET: " + webAddr.ToString());
             using (var newTab = await browser.NewPageAsync()) { // TODO: delete
                 await newTab.SetUserAgentAsync(GetRandomUserAgent());
                 await newTab.GoToAsync(webAddr.ToString(),
@@ -61,7 +61,7 @@ namespace Senq {
                                             WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.Load }
                                        });
                 
-                await Task.Delay(10000);
+                //await Task.Delay(10000);
                 // Get the content of fully loaded page
                 return await newTab.GetContentAsync();
             }
