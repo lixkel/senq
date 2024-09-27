@@ -273,7 +273,7 @@ namespace Senq {
             //Console.WriteLine($" GET: {conf.webAddr}");
 
             visitedPages.Add(webAddr); // TODO: check performence if put into HandleLinks
-            Console.WriteLine($"visited: {webAddr}");
+            //Console.WriteLine($"visited: {webAddr}");
 
             string webPage = await rm.GET(webAddr);
 
