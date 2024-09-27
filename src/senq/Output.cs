@@ -3,6 +3,8 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Collections.Generic;
 
+using Newtonsoft.Json;
+
 
 namespace Senq {
 
@@ -167,6 +169,54 @@ namespace Senq {
             public void Dispose() {
                 connection?.Close();
                 connection?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Represents a writer that outputs the scraped content to a JSON file.
+        /// </summary>
+        public class JSONFileWriter : IDisposable {
+            private StreamWriter writer;
+            private string filePath;
+            private List<dynamic> entries;
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="JSONFileWriter"/> class.
+            /// </summary>
+            /// <param name="filePath">Path to the output JSON file.</param>
+            public JSONFileWriter(string filePath = "output.json") {
+                this.filePath = filePath;
+                writer = new StreamWriter(filePath);
+                entries = new List<dynamic>();
+            }
+
+            public static Action<string, string> GetWriter(string filePath = "output.json") {
+                var newClass = new JSONFileWriter(filePath);
+                return newClass.Write;
+            }
+
+            /// <summary>
+            /// Writes the scraped content to the JSON file. This is the method you want to pass as output method to scraper.
+            /// </summary>
+            /// <param name="webAddress">Web address of the scraped content.</param>
+            /// <param name="content">Actual scraped content.</param>
+            public void Write(string webAddress, string content) {
+                var entry = new {
+                    WebAddress = webAddress,
+                    Content = content
+                };
+                entries.Add(entry);
+            }
+
+            /// <summary>
+            /// Disposes of the writer and releases all its resources.
+            /// </summary>
+            public void Dispose() {
+                string json = JsonConvert.SerializeObject(entries, Formatting.Indented);
+                writer.Write(json);
+                writer?.Flush();
+                writer?.Close();
+                writer?.Dispose();
             }
         }
     }

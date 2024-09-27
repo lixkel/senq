@@ -115,5 +115,54 @@ namespace senq.Tests {
                 File.Delete(outputFile);
             }
         }
+
+        /// <summary>
+        /// Test to check if the scraper correctly writes output to a CSV file
+        /// </summary>
+        [Fact]
+        public void JSONFileOutput() {
+            // Arrange
+            string result = "";
+            string expected =   "[\n" +
+                                "  {\n" +
+                                "    \"WebAddress\": \"http://localhost/index.html\",\n" +
+                                "    \"Content\": \"lorem\"\n" +
+                                "  },\n" +
+                                "  {\n" +
+                                "    \"WebAddress\": \"http://localhost/index.html\",\n" +
+                                "    \"Content\": \"Lorem\"\n" +
+                                "  }\n" +
+                                "]";
+            
+            string outputFile = Path.GetTempFileName();
+
+            var conf = new SenqConf  {
+                webAddr = "http://localhost/index.html",
+                targetRegex = @"(?i)(?<target>lorem)",
+                useHostAddress = true,
+                output = Output.JSONFileWriter.GetWriter(outputFile),
+                maxDepth = 0,
+                stayOnDomain = true,
+            };
+            
+            Scraper scraper = new Scraper();
+
+            // Act
+            scraper.Scrape(conf).GetAwaiter().GetResult();
+
+            // Read all contents of the output file into the result string
+            result = File.ReadAllText(outputFile);
+
+                        Console.WriteLine(result);
+
+            // Assert
+            Assert.Equal(expected, result);
+
+            // Cleanup
+            // Delete the output file
+            if (File.Exists(outputFile)) {
+                File.Delete(outputFile);
+            }
+        }
     }
 }

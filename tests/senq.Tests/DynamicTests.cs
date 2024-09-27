@@ -108,12 +108,12 @@ namespace senq.Tests {
         [Fact]
         public void DynamicScraping_JS() {
             // Arrange
-            string expected = "JS_LOADED";
+            string expected = "http://localhost/js.html,JS_LOADED\n";
 
             string result = "";
             var conf = new SenqConf {
                 webAddr = "http://localhost/js.html",
-                targetRegex = @"JS_LOADED",
+                targetRegex = "(?<target>JS_LOADED)",
                 useHostAddress = true,
                 output = Output.CSVString.GetWriter(str => { result = str; }),
                 maxDepth = 0,
