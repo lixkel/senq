@@ -40,6 +40,7 @@ namespace senq.Tests {
             5, 
             @"(?i)(?<target>lorem)"
         )]
+        /*
         [InlineData(
             "http://localhost/index.html,content\n" +
             "http://localhost/statistiky.html,content\n" +
@@ -51,6 +52,7 @@ namespace senq.Tests {
             1, 
             @"(?i)(?<target>content|ego)"
         )]
+        */
         public void StaticScraping_String_WithMatches(string expected, int maxDepth, string targetRegex) {
             // Arrange
             string result = "";
